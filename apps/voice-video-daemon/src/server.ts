@@ -8,6 +8,7 @@ import path from "path";
 import { type ClientMessage, type ServerMessage } from "./types";
 import { transcribePcm } from "./whisper";
 import { speak, synthesizeToPcmWave } from "./tts-macos";
+import { streamEdgeTts } from "./tts-edge";
 
 type ServerState = {
   startMs: number;
@@ -20,6 +21,7 @@ const ECHO_LLM = process.env.MYCAT_ECHO_LLM === "1";
 const TTS_ENABLED = process.env.MYCAT_TTS === "1";
 const TTS_STREAM = process.env.MYCAT_TTS_STREAM === "1";
 const TTS_CHUNK_MS = Number(process.env.MYCAT_TTS_CHUNK_MS ?? 40); // 40ms chunks by default
+const TTS_ENGINE = process.env.MYCAT_TTS_ENGINE || "mac"; // mac|edge
 
 function buildHealth(): ServerMessage {
   return {
@@ -147,24 +149,45 @@ async function handleAudio(ws: Bun.WebSocket, state: ServerState, audio: any) {
         const text = chunk.text.trim();
         ws.send(JSON.stringify({ session_id: session, llm: { partial_text: text, is_final: true } }));
         if (TTS_ENABLED && text) {
-          if (TTS_STREAM) {
-            synthesizeToPcmWave(text)
-              .then(({ pcm, sampleRate }) => streamPcmChunks(ws, session, pcm, sampleRate, TTS_CHUNK_MS))
-              .catch((err) =>
-                ws.send(JSON.stringify({ session_id: session, health: { state: "error", message: `tts: ${err.message}` } })),
-              );
-          } else {
-            void speak(text).catch((err) =>
-              ws.send(JSON.stringify({ session_id: session, health: { state: "error", message: `tts: ${err.message}` } })),
-            );
-            ws.send(JSON.stringify({ session_id: session, tts: { audio: new Uint8Array(), is_final: true } }));
-          }
+          runTts(ws, session, text).catch((err) =>
+            ws.send(JSON.stringify({ session_id: session, health: { state: "error", message: `tts: ${err.message}` } })),
+          );
         }
       }
     },
   ).catch((err) => {
     ws.send(JSON.stringify({ session_id: session, health: { state: "error", message: err.message } }));
   });
+}
+
+async function runTts(ws: Bun.WebSocket, session: string, text: string) {
+  if (!TTS_STREAM) {
+    await speak(text);
+    ws.send(JSON.stringify({ session_id: session, tts: { audio: new Uint8Array(), is_final: true } }));
+    return;
+  }
+
+  if (TTS_ENGINE === "edge") {
+    for await (const chunk of streamEdgeTts(text)) {
+      ws.send(
+        JSON.stringify({
+          session_id: session,
+          tts: {
+            audio_base64: Buffer.from(chunk.audio).toString("base64"),
+            codec: "mp3",
+            is_opus: false,
+            is_final: chunk.isFinal,
+            sample_rate: chunk.sampleRate,
+          },
+        }),
+      );
+    }
+    return;
+  }
+
+  // default macOS synth to wav then chunk
+  const { pcm, sampleRate } = await synthesizeToPcmWave(text);
+  streamPcmChunks(ws, session, pcm, sampleRate, TTS_CHUNK_MS);
 }
 
 function streamPcmChunks(ws: Bun.WebSocket, session: string, pcm: Buffer, sampleRate: number, chunkMs: number) {

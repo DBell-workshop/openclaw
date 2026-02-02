@@ -56,6 +56,7 @@ export interface TtsChunk {
   is_opus?: boolean;
   is_final?: boolean;
   sample_rate?: number;
+  codec?: string;
 }
 
 export interface Health {
