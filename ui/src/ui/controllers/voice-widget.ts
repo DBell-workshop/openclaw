@@ -1,4 +1,5 @@
 import { TtsPlayback } from "./tts-playback";
+import { MicRecorder } from "./mic-recorder";
 
 const DEFAULT_URL = import.meta.env.VITE_VOICE_WS_URL || "ws://localhost:8799/voice";
 
@@ -16,14 +17,16 @@ export function startVoiceWidget(url: string = DEFAULT_URL) {
   const ui = createWidget();
   ui.setUrl(url);
   let ws: WebSocket | null = null;
+  const mic = new MicRecorder();
 
   const player = new TtsPlayback({
     onStart: () => ui.setState("playing"),
     onEnd: () => ui.setState("connected"),
   });
 
-  function connect() {
+  async function connect() {
     ui.setState("connecting");
+    await mic.start();
     ws = new WebSocket(url);
     ws.onopen = () => ui.setState("connected");
     ws.onclose = () => ui.setState("idle");
@@ -48,8 +51,21 @@ export function startVoiceWidget(url: string = DEFAULT_URL) {
 
   ui.setState("idle");
   ui.onStart = () => connect();
-  ui.onStop = () => {
-    ws?.close();
+  ui.onStop = async () => {
+    const audio = await mic.stop();
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(
+        JSON.stringify({
+          audio: {
+            data: Buffer.from(audio.pcm).toString("base64"),
+            sample_rate: audio.sampleRate,
+            is_opus: false,
+            end_of_utterance: true,
+          },
+        }),
+      );
+      ws.close();
+    }
     ui.setState("idle");
   };
 
