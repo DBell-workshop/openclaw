@@ -17,10 +17,20 @@ type TtsMessage = {
   codec?: string; // e.g., "mp3"
 };
 
+type PlaybackEvents = {
+  onStart?: () => void;
+  onEnd?: () => void;
+};
+
 export class TtsPlayback {
   private ctx = new AudioContext();
   private queue: ArrayBuffer[] = [];
   private playing = false;
+  private events: PlaybackEvents;
+
+  constructor(events: PlaybackEvents = {}) {
+    this.events = events;
+  }
 
   enqueue(tts: TtsMessage) {
     const buf = this.toArrayBuffer(tts);
@@ -41,6 +51,7 @@ export class TtsPlayback {
 
   private async flush() {
     this.playing = true;
+    this.events.onStart?.();
     while (this.queue.length > 0) {
       const data = this.queue.shift()!;
       if (data.byteLength === 0) continue;
@@ -59,6 +70,7 @@ export class TtsPlayback {
       }
     }
     this.playing = false;
+    this.events.onEnd?.();
   }
 
   private tryDecode(data: ArrayBuffer): Promise<AudioBuffer | null> {
