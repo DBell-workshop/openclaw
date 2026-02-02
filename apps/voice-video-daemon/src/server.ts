@@ -7,7 +7,7 @@ import os from "os";
 import path from "path";
 import { type ClientMessage, type ServerMessage } from "./types";
 import { transcribePcm } from "./whisper";
-import { speak } from "./tts-macos";
+import { speak, synthesizeToPcmWave } from "./tts-macos";
 
 type ServerState = {
   startMs: number;
@@ -18,6 +18,7 @@ const PORT = Number(process.env.MYCAT_VOICE_PORT ?? 8799);
 const TMP_ROOT = process.env.MYCAT_TMP ?? path.join(os.tmpdir(), "mycat-voice");
 const ECHO_LLM = process.env.MYCAT_ECHO_LLM === "1";
 const TTS_ENABLED = process.env.MYCAT_TTS === "1";
+const TTS_STREAM = process.env.MYCAT_TTS_STREAM === "1";
 
 function buildHealth(): ServerMessage {
   return {
@@ -145,10 +146,20 @@ async function handleAudio(ws: Bun.WebSocket, state: ServerState, audio: any) {
         const text = chunk.text.trim();
         ws.send(JSON.stringify({ session_id: session, llm: { partial_text: text, is_final: true } }));
         if (TTS_ENABLED && text) {
-          void speak(text).catch((err) =>
-            ws.send(JSON.stringify({ session_id: session, health: { state: "error", message: `tts: ${err.message}` } })),
-          );
-          ws.send(JSON.stringify({ session_id: session, tts: { audio: new Uint8Array(), is_final: true } }));
+          if (TTS_STREAM) {
+            synthesizeToPcmWave(text)
+              .then(({ pcm, sampleRate }) => {
+                ws.send(JSON.stringify({ session_id: session, tts: { audio: pcm, is_opus: false, is_final: true, sample_rate: sampleRate } }));
+              })
+              .catch((err) =>
+                ws.send(JSON.stringify({ session_id: session, health: { state: "error", message: `tts: ${err.message}` } })),
+              );
+          } else {
+            void speak(text).catch((err) =>
+              ws.send(JSON.stringify({ session_id: session, health: { state: "error", message: `tts: ${err.message}` } })),
+            );
+            ws.send(JSON.stringify({ session_id: session, tts: { audio: new Uint8Array(), is_final: true } }));
+          }
         }
       }
     },
