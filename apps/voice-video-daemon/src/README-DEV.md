@@ -16,6 +16,7 @@
 
 ## 临时调试
 - `scripts/demo/push-to-talk.ts`：读取 WAV/PCM，base64 发送到 WS，打印 ASR/LLM 回显。
+- `scripts/demo/mic-ptt.ts`：用 sox/ffmpeg 录制 4s 麦克风音频并发送到 WS。
 - `scripts/demo/loopback.ts`：回声测试（当前为占位，等待真实流接入）。
 - `scripts/demo/ws-loop-client.ts`：连本地 WS，发送文本/控制并查看回显。
 

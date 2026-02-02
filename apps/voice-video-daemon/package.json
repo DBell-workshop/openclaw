@@ -7,6 +7,7 @@
     "dev": "bun run src/server.ts",
     "demo:loopback": "bun run scripts/demo/loopback.ts",
     "demo:ptt": "bun run scripts/demo/push-to-talk.ts",
+    "demo:mic-ptt": "bun run scripts/demo/mic-ptt.ts",
     "demo:ws-client": "bun run scripts/demo/ws-loop-client.ts",
     "proto:gen": "node scripts/generate-proto.ts",
     "proto:fetch": "node scripts/fetch-protoc.ts",
