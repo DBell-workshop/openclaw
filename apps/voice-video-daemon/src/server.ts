@@ -8,6 +8,7 @@ import path from "path";
 import { type ClientMessage, type ServerMessage } from "./types";
 import { transcribePcm } from "./whisper";
 import { speak, synthesizeToPcmWave } from "./tts-macos";
+import { OpusDecoder } from "@discordjs/opus";
 import { streamEdgeTts } from "./tts-edge";
 
 type ServerState = {
@@ -22,6 +23,7 @@ const TTS_ENABLED = process.env.MYCAT_TTS === "1";
 const TTS_STREAM = process.env.MYCAT_TTS_STREAM === "1";
 const TTS_CHUNK_MS = Number(process.env.MYCAT_TTS_CHUNK_MS ?? 40); // 40ms chunks by default
 const TTS_ENGINE = process.env.MYCAT_TTS_ENGINE || "mac"; // mac|edge
+const OPUS_DECODER = new OpusDecoder(16000, 1);
 
 function buildHealth(): ServerMessage {
   return {
@@ -116,7 +118,7 @@ if (import.meta.main) {
 async function handleAudio(ws: Bun.WebSocket, state: ServerState, audio: any) {
   const session = "default"; // TODO: derive from auth/session payload
   if (!state.buffers[session]) state.buffers[session] = [];
-  // Accept base64 string or Uint8Array
+  // Accept base64 string or Uint8Array, optionally opus
   let buf: Buffer;
   if (typeof audio.data === "string") {
     buf = Buffer.from(audio.data, "base64");
@@ -126,7 +128,16 @@ async function handleAudio(ws: Bun.WebSocket, state: ServerState, audio: any) {
     ws.send(JSON.stringify({ session_id: session, health: { state: "error", message: "missing audio.data" } }));
     return;
   }
-  state.buffers[session].push(buf);
+  if (audio.is_opus) {
+    try {
+      const pcm = Buffer.from(OPUS_DECODER.decode(buf));
+      state.buffers[session].push(pcm);
+    } catch (err) {
+      ws.send(JSON.stringify({ session_id: session, health: { state: "error", message: `opus decode: ${err}` } }));
+    }
+  } else {
+    state.buffers[session].push(buf);
+  }
   if (!audio.end_of_utterance) return;
 
   const tmpDir = path.join(TMP_ROOT, session);
