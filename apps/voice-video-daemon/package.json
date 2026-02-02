@@ -1,0 +1,21 @@
+{
+  "name": "@mycat/voice-video-daemon",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run src/server.ts",
+    "demo:loopback": "bun run scripts/demo/loopback.ts",
+    "demo:ptt": "bun run scripts/demo/push-to-talk.ts",
+    "demo:ws-client": "bun run scripts/demo/ws-loop-client.ts",
+    "proto:gen": "node scripts/generate-proto.ts",
+    "proto:fetch": "node scripts/fetch-protoc.ts",
+    "asr": "node --loader ts-node/esm scripts/demo/asr-standalone.ts"
+  },
+  "devDependencies": {
+    "@bufbuild/connect": "^0.13.0",
+    "@bufbuild/protobuf": "^1.6.0",
+    "ts-node": "^10.9.2",
+    "ts-proto": "1.180.0"
+  }
+}

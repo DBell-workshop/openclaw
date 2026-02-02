@@ -1,0 +1,23 @@
+# 开发备忘（voice-video-daemon）
+
+## 启动形态
+- dev：`bun run src/server.ts`（当前为 WebSocket loopback，占位 RTT 测试）。
+- 提供 gRPC + WS；WS 作为前端/Electron 直连，gRPC 供 Gateway/CLI。
+- Proto 生成：`pnpm --filter @mycat/voice-video-daemon run proto:fetch && pnpm --filter @mycat/voice-video-daemon run proto:gen`
+  - 生成产物：`src/gen/voice.ts`
+  - 下载的 `protoc` 位于 `.tools/`，已在 .gitignore；需要时可手动删除。
+- 代码生成：`bun run scripts/generate-proto.ts`（占位；后续接入 buf/ts-proto）。
+
+## 集成计划
+- ASR：通过 spawn Whisper.cpp（Metal），流式切片；增加重用模型缓存。
+- TTS：macOS AVSpeechSynthesizer via objc bridge 或 `say` CLI（先用简版，后续换流式）。
+- VAD：silero-vad wasm/node binding，前置于 ASR；标记 `end_of_utterance`。
+- 健康检查：ASR/TTS 子进程心跳 + 最近延迟/丢包指标。
+
+## 临时调试
+- `scripts/demo/push-to-talk.ts`：模拟按住说话上传 PCM；待接入音频链路。
+- `scripts/demo/loopback.ts`：回声测试（当前为占位，等待真实流接入）。
+- `scripts/demo/ws-loop-client.ts`：连本地 WS，发送文本/控制并查看回显。
+
+## 对接 orchestrator
+- 在 ActionEvent 里携带 `risk_level`、`approval_required`，由上层 UI 决定审批流；此守护进程只负责透传事件。

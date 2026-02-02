@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package mycat.voice;
+
+// Bidirectional audio/LLM/TTS stream for macOS-first assistant.
+service VoiceStream {
+  // Start a full-duplex session; client sends AudioChunk / Control messages,
+  // server returns ASR transcripts, LLM drafts, action plans, and TTS audio.
+  rpc Stream(stream ClientMessage) returns (stream ServerMessage);
+}
+
+message ClientMessage {
+  oneof msg {
+    AudioChunk audio = 1;
+    Control control = 2;
+  }
+}
+
+message AudioChunk {
+  bytes data = 1; // PCM 16-bit LE or Opus frame
+  uint32 sample_rate = 2; // e.g., 16000
+  bool is_opus = 3; // true if data is opus-encoded
+  bool end_of_utterance = 4; // VAD boundary
+}
+
+message Control {
+  string session_id = 1;
+  bool push_to_talk = 2; // client is holding the talk key
+  bool stop = 3; // request graceful stop
+}
+
+message ServerMessage {
+  string session_id = 1;
+  oneof msg {
+    AsrResult asr = 2;
+    LlmUpdate llm = 3;
+    ActionEvent action = 4;
+    TtsChunk tts = 5;
+    Health health = 6;
+  }
+}
+
+message AsrResult {
+  string text = 1;
+  bool is_final = 2;
+  double latency_ms = 3;
+}
+
+message LlmUpdate {
+  string partial_text = 1; // streaming tokens
+  bool is_final = 2;
+}
+
+message ActionEvent {
+  string id = 1;
+  string type = 2; // browser|desktop|approval
+  string title = 3;
+  string detail = 4;
+  string risk_level = 5; // low|medium|high
+  bool approval_required = 6;
+  string status = 7; // planned|approved|rejected|running|done|error
+}
+
+message TtsChunk {
+  bytes audio = 1; // PCM/Opus chunk
+  bool is_opus = 2;
+  bool is_final = 3;
+}
+
+message Health {
+  string state = 1; // ready|degraded|error
+  string message = 2;
+}
