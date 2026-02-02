@@ -10,6 +10,7 @@ import { transcribePcm } from "./whisper";
 import { speak, synthesizeToPcmWave } from "./tts-macos";
 import { OpusDecoder } from "@discordjs/opus";
 import { streamEdgeTts } from "./tts-edge";
+import { spawn } from "child_process";
 
 type ServerState = {
   startMs: number;
@@ -22,8 +23,10 @@ const ECHO_LLM = process.env.MYCAT_ECHO_LLM === "1";
 const TTS_ENABLED = process.env.MYCAT_TTS === "1";
 const TTS_STREAM = process.env.MYCAT_TTS_STREAM === "1";
 const TTS_CHUNK_MS = Number(process.env.MYCAT_TTS_CHUNK_MS ?? 40); // 40ms chunks by default
-const TTS_ENGINE = process.env.MYCAT_TTS_ENGINE || "mac"; // mac|edge
+const TTS_ENGINE = process.env.MYCAT_TTS_ENGINE || "mac"; // mac|edge|styletts2|matcha
 const OPUS_DECODER = new OpusDecoder(16000, 1);
+const PYTHON_BIN = process.env.MYCAT_PYTHON || "python3";
+const PY_TTS_WORKER = path.resolve(new URL(".", import.meta.url).pathname, "../python/tts_worker.py");
 
 function buildHealth(): ServerMessage {
   return {
@@ -196,6 +199,11 @@ async function runTts(ws: Bun.WebSocket, session: string, text: string) {
     return;
   }
 
+  if (TTS_ENGINE === "styletts2" || TTS_ENGINE === "matcha") {
+    await streamPythonTts(ws, session, text);
+    return;
+  }
+
   // default macOS synth to wav then chunk
   const { pcm, sampleRate } = await synthesizeToPcmWave(text);
   streamPcmChunks(ws, session, pcm, sampleRate, TTS_CHUNK_MS);
@@ -220,4 +228,42 @@ function streamPcmChunks(ws: Bun.WebSocket, session: string, pcm: Buffer, sample
       }),
     );
   }
+}
+
+async function streamPythonTts(ws: Bun.WebSocket, session: string, text: string) {
+  return new Promise<void>((resolve, reject) => {
+    const child = spawn(PYTHON_BIN, [PY_TTS_WORKER], { stdio: ["pipe", "pipe", "inherit"] });
+    child.stdin.write(text + "\n");
+    child.stdin.end();
+
+    let buffer = Buffer.alloc(0);
+    child.stdout.on("data", (chunk) => {
+      buffer = Buffer.concat([buffer, chunk]);
+      while (buffer.length >= 4) {
+        const len = buffer.readUInt32LE(0);
+        if (buffer.length < 4 + len) break;
+        const audio = buffer.subarray(4, 4 + len);
+        buffer = buffer.subarray(4 + len);
+        const is_final = len === 0;
+        ws.send(
+          JSON.stringify({
+            session_id: session,
+            tts: {
+              audio_base64: audio.length ? audio.toString("base64") : undefined,
+              codec: "pcm16",
+              is_opus: false,
+              is_final,
+              sample_rate: 24000,
+            },
+          }),
+        );
+        if (is_final) resolve();
+      }
+    });
+    child.on("error", reject);
+    child.on("exit", (code) => {
+      if (code === 0) return;
+      reject(new Error(`python tts exited ${code}`));
+    });
+  });
 }

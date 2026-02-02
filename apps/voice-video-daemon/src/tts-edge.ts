@@ -1,8 +1,8 @@
-# Edge TTS streaming helper (networked).
-# Requires internet and uses the Microsoft Edge TTS service.
-# Environment:
-#   EDGE_TTS_VOICE (default en-US-JennyNeural)
-#   EDGE_TTS_FORMAT (default audio-16khz-32kbitrate-mono-mp3)
+// Edge TTS streaming helper (networked).
+// Requires internet and uses the Microsoft Edge TTS service.
+// Environment:
+//   EDGE_TTS_VOICE (default en-US-JennyNeural)
+//   EDGE_TTS_FORMAT (default audio-16khz-32kbitrate-mono-mp3)
 
 import { generate } from "edge-tts";
 

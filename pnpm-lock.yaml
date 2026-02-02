@@ -275,6 +275,9 @@ importers:
       edge-tts:
         specifier: 1.0.1
         version: 1.0.1(typescript@5.9.3)
+      python-shell:
+        specifier: ^5.0.0
+        version: 5.0.0
       ts-node:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@25.1.0)(typescript@5.9.3)
@@ -5198,6 +5201,10 @@ packages:
     resolution: {integrity: sha512-uPiDUyf7gd7Il1KnqfNUtHqntL0w1LapEw5Zsuh8oCK8GsqdxySX1PzdIHKB2Dw273gWY4MW0zC5gy3Re9XlqQ==}
     engines: {node: '>=18'}
     hasBin: true
+
+  python-shell@5.0.0:
+    resolution: {integrity: sha512-RUOOOjHLhgR1MIQrCtnEqz/HJ1RMZBIN+REnpSUrfft2bXqXy69fwJASVziWExfFXsR1bCY0TznnHooNsCo0/w==}
+    engines: {node: '>=0.10'}
 
   qified@0.6.0:
     resolution: {integrity: sha512-tsSGN1x3h569ZSU1u6diwhltLyfUWDp3YbFHedapTmpBl0B3P6U3+Qptg7xu+v+1io1EwhdPyyRHYbEw0KN2FA==}
@@ -11435,6 +11442,8 @@ snapshots:
       - supports-color
       - typescript
       - utf-8-validate
+
+  python-shell@5.0.0: {}
 
   qified@0.6.0:
     dependencies:
