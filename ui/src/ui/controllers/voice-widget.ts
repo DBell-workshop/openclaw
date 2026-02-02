@@ -24,7 +24,8 @@ export function startVoiceWidget(url: string = DEFAULT_URL) {
     onEnd: () => ui.setState("connected"),
   });
 
-  async function connect() {
+  async function ensureConnection() {
+    if (ws && ws.readyState === WebSocket.OPEN) return;
     ui.setState("connecting");
     ws = new WebSocket(url);
     ws.onopen = () => ui.setState("connected");
@@ -50,6 +51,7 @@ export function startVoiceWidget(url: string = DEFAULT_URL) {
 
   ui.setState("idle");
   ui.onStart = async () => {
+    await ensureConnection();
     await mic.start(({ base64, sampleRate, end }) => {
       if (!ws || ws.readyState !== WebSocket.OPEN) return;
       ws.send(
@@ -62,16 +64,14 @@ export function startVoiceWidget(url: string = DEFAULT_URL) {
           },
         }),
       );
+      if (end) ui.setState("thinking");
     });
-    connect();
+    ui.setState("listening");
   };
+
   ui.onStop = async () => {
     mic.stop();
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ audio: { data: "", sample_rate: 16000, is_opus: true, end_of_utterance: true } }));
-      ws.close();
-    }
-    ui.setState("idle");
+    ui.setState("connected");
   };
 
   return { stop: () => ui.teardown() };
