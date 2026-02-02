@@ -1,12 +1,12 @@
 # 开发备忘（voice-video-daemon）
 
 ## 启动形态
-- dev：`bun run src/server.ts`（当前为 WebSocket loopback，占位 RTT 测试）。
+- dev：`bun run src/server.ts`（当前 WS 支持 audio.base64 + end_of_utterance，落盘→whisper）。
 - 提供 gRPC + WS；WS 作为前端/Electron 直连，gRPC 供 Gateway/CLI。
 - Proto 生成：`pnpm --filter @mycat/voice-video-daemon run proto:fetch && pnpm --filter @mycat/voice-video-daemon run proto:gen`
   - 生成产物：`src/gen/voice.ts`
   - 下载的 `protoc` 位于 `.tools/`，已在 .gitignore；需要时可手动删除。
-- 代码生成：`bun run scripts/generate-proto.ts`（占位；后续接入 buf/ts-proto）。
+- ASR/TTS stub：`src/whisper.ts`（whisper.cpp CLI）+ `src/tts-macos.ts`（macOS `say`）。
 
 ## 集成计划
 - ASR：通过 spawn Whisper.cpp（Metal），流式切片；增加重用模型缓存。
