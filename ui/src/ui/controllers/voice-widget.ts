@@ -43,6 +43,9 @@ export function startVoiceWidget(url: string = DEFAULT_URL) {
           ui.setLlm(msg.llm.partial_text);
           ui.setState("thinking");
         }
+        if (msg.action) {
+          ui.pushAction(msg.action);
+        }
       } catch (err) {
         console.warn("[voice-widget] bad message", err);
       }
@@ -77,7 +80,9 @@ export function startVoiceWidget(url: string = DEFAULT_URL) {
   return { stop: () => ui.teardown() };
 }
 
-function createWidget(): Overlay & { onStart?: () => void; onStop?: () => void } {
+type ActionItem = { id: string; title?: string; status?: string; risk?: string; approval?: boolean };
+
+function createWidget(): Overlay & { onStart?: () => void; onStop?: () => void; pushAction: (a: any) => void } {
   const root = document.createElement("div");
   root.className = "voice-widget";
   root.innerHTML = `
@@ -91,6 +96,7 @@ function createWidget(): Overlay & { onStart?: () => void; onStop?: () => void }
     </div>
     <div class="voice-widget__text asr">ASR: --</div>
     <div class="voice-widget__text llm">LLM: --</div>
+    <div class="voice-widget__actions-list"></div>
     <div class="voice-widget__actions">
       <button class="start">Start</button>
       <button class="stop" disabled>Stop</button>
@@ -101,6 +107,8 @@ function createWidget(): Overlay & { onStart?: () => void; onStop?: () => void }
   const urlEl = root.querySelector(".url") as HTMLSpanElement;
   const asrEl = root.querySelector(".asr") as HTMLDivElement;
   const llmEl = root.querySelector(".llm") as HTMLDivElement;
+  const actionList = root.querySelector(".voice-widget__actions-list") as HTMLDivElement;
+  const actions: ActionItem[] = [];
   const startBtn = root.querySelector(".start") as HTMLButtonElement;
   const stopBtn = root.querySelector(".stop") as HTMLButtonElement;
 
@@ -127,6 +135,16 @@ function createWidget(): Overlay & { onStart?: () => void; onStop?: () => void }
     setLlm: (t: string) => {
       llmEl.textContent = `LLM: ${t}`;
     },
+    pushAction: (a: any) => {
+      actions.unshift({
+        id: a.id || String(Date.now()),
+        title: a.title || a.type || "action",
+        status: a.status || "planned",
+        risk: a.risk_level,
+        approval: !!a.approval_required,
+      });
+      renderActions(actions, actionList);
+    },
     teardown: () => root.remove(),
   };
 
@@ -134,4 +152,17 @@ function createWidget(): Overlay & { onStart?: () => void; onStop?: () => void }
   stopBtn.onclick = () => controller.onStop?.();
 
   return controller;
+}
+function renderActions(items: ActionItem[], container: HTMLElement) {
+  container.innerHTML = items
+    .slice(0, 5)
+    .map((a) => {
+      const riskBadge = a.risk ? `<span class="badge badge--${a.risk}">${a.risk}</span>` : "";
+      const approval = a.approval ? '<span class="badge badge--approval">need approval</span>' : "";
+      return `<div class="action-item" data-status="${a.status}">
+        <div class="title">${a.title}</div>
+        <div class="meta">${a.status}${riskBadge ? " • " + riskBadge : ""}${approval ? " • " + approval : ""}</div>
+      </div>`;
+    })
+    .join("");
 }

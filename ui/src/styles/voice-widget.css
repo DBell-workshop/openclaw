@@ -81,6 +81,29 @@
 .voice-widget__text.llm { color: #facc15; }
 .voice-widget__text.asr { color: #a5d8ff; }
 
+.voice-widget__actions-list {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  max-height: 120px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.02);
+}
+.voice-widget__actions-list .action-item {
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 12px;
+}
+.voice-widget__actions-list .action-item:last-child { border-bottom: none; }
+.voice-widget__actions-list .title { font-weight: 600; }
+.voice-widget__actions-list .meta { opacity: 0.75; font-size: 11px; }
+.badge { display: inline-block; padding: 1px 6px; border-radius: 999px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; }
+.badge--high { background: rgba(248, 113, 113, 0.2); color: #fecdd3; }
+.badge--medium { background: rgba(251, 191, 36, 0.2); color: #fcd34d; }
+.badge--low { background: rgba(74, 222, 128, 0.15); color: #bbf7d0; }
+.badge--approval { background: rgba(250, 204, 21, 0.2); color: #facc15; }
+
 .voice-widget__actions {
   display: flex;
   gap: 8px;
