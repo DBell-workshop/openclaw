@@ -1,73 +1,48 @@
-// Minimal microphone recorder that captures mono PCM16 at target sample rate (default 16k).
-// Uses ScriptProcessorNode; suitable for prototyping. Not for production latency-critical use.
+// Streaming microphone recorder using MediaRecorder for low-latency chunks.
+// Emits base64 audio/webm(opus) chunks every CHUNK_MS; caller sends to WS.
 
 const TARGET_SR = 16000;
+const CHUNK_MS = 200;
+
+export type MicChunkListener = (payload: { base64: string; sampleRate: number; end: boolean }) => void;
 
 export class MicRecorder {
-  private ctx: AudioContext | null = null;
-  private processor: ScriptProcessorNode | null = null;
   private stream: MediaStream | null = null;
-  private samples: Float32Array[] = [];
-  private recording = false;
+  private mediaRecorder: MediaRecorder | null = null;
+  private listener: MicChunkListener | null = null;
 
-  async start() {
-    if (this.recording) return;
-    this.stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-    this.ctx = new AudioContext({ sampleRate: 48000 });
-    const src = this.ctx.createMediaStreamSource(this.stream);
-    this.processor = this.ctx.createScriptProcessor(4096, 1, 1);
-    src.connect(this.processor);
-    this.processor.connect(this.ctx.destination);
-    this.processor.onaudioprocess = (e) => {
-      if (!this.recording) return;
-      const input = e.inputBuffer.getChannelData(0);
-      this.samples.push(new Float32Array(input));
-    };
-    this.samples = [];
-    this.recording = true;
+  async start(listener: MicChunkListener) {
+    if (this.mediaRecorder) return;
+    this.listener = listener;
+    this.stream = await navigator.mediaDevices.getUserMedia({ audio: { sampleRate: TARGET_SR, channelCount: 1 }, video: false });
+    this.mediaRecorder = new MediaRecorder(this.stream, { mimeType: "audio/webm;codecs=opus", audioBitsPerSecond: 32000 });
+    this.mediaRecorder.ondataavailable = (e) => this.handleChunk(e.data, false);
+    this.mediaRecorder.onstop = () => this.handleChunk(undefined, true);
+    this.mediaRecorder.start(CHUNK_MS);
   }
 
-  async stop(): Promise<{ pcm: ArrayBuffer; sampleRate: number }> {
-    this.recording = false;
-    this.processor?.disconnect();
+  stop() {
+    if (!this.mediaRecorder) return;
+    this.mediaRecorder.stop();
     this.stream?.getTracks().forEach((t) => t.stop());
-    await this.ctx?.close();
+    this.mediaRecorder = null;
+    this.stream = null;
+  }
 
-    const concatenated = concatFloat32(this.samples);
-    const down = downsample(concatenated, this.ctx?.sampleRate ?? TARGET_SR, TARGET_SR);
-    const pcm = floatTo16le(down);
-    return { pcm, sampleRate: TARGET_SR };
+  private async handleChunk(data: Blob | undefined, end: boolean) {
+    if (!this.listener) return;
+    if (data && data.size > 0) {
+      const buffer = await data.arrayBuffer();
+      const base64 = arrayBufferToBase64(buffer);
+      this.listener({ base64, sampleRate: TARGET_SR, end: false });
+    }
+    if (end) this.listener({ base64: "", sampleRate: TARGET_SR, end: true });
   }
 }
 
-function concatFloat32(chunks: Float32Array[]): Float32Array {
-  const len = chunks.reduce((s, c) => s + c.length, 0);
-  const out = new Float32Array(len);
-  let offset = 0;
-  for (const c of chunks) {
-    out.set(c, offset);
-    offset += c.length;
-  }
-  return out;
-}
-
-function downsample(data: Float32Array, fromSr: number, toSr: number): Float32Array {
-  if (fromSr === toSr) return data;
-  const ratio = fromSr / toSr;
-  const outLen = Math.floor(data.length / ratio);
-  const out = new Float32Array(outLen);
-  for (let i = 0; i < outLen; i++) {
-    const idx = Math.floor(i * ratio);
-    out[i] = data[idx];
-  }
-  return out;
-}
-
-function floatTo16le(data: Float32Array): ArrayBuffer {
-  const out = new Int16Array(data.length);
-  for (let i = 0; i < data.length; i++) {
-    const v = Math.max(-1, Math.min(1, data[i]));
-    out[i] = v < 0 ? v * 0x8000 : v * 0x7fff;
-  }
-  return out.buffer;
+function arrayBufferToBase64(ab: ArrayBuffer): string {
+  const bytes = new Uint8Array(ab);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
 }
