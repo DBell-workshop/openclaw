@@ -7,6 +7,7 @@ import os from "os";
 import path from "path";
 import { type ClientMessage, type ServerMessage } from "./types";
 import { transcribePcm } from "./whisper";
+import { speak } from "./tts-macos";
 
 type ServerState = {
   startMs: number;
@@ -16,6 +17,7 @@ type ServerState = {
 const PORT = Number(process.env.MYCAT_VOICE_PORT ?? 8799);
 const TMP_ROOT = process.env.MYCAT_TMP ?? path.join(os.tmpdir(), "mycat-voice");
 const ECHO_LLM = process.env.MYCAT_ECHO_LLM === "1";
+const TTS_ENABLED = process.env.MYCAT_TTS === "1";
 
 function buildHealth(): ServerMessage {
   return {
@@ -140,13 +142,14 @@ async function handleAudio(ws: Bun.WebSocket, state: ServerState, audio: any) {
       };
       ws.send(JSON.stringify(payload));
       if (chunk.isFinal && ECHO_LLM) {
-        // Minimal echo LLM/TTS placeholder
-        ws.send(
-          JSON.stringify({
-            session_id: session,
-            llm: { partial_text: chunk.text, is_final: true },
-          }),
-        );
+        const text = chunk.text.trim();
+        ws.send(JSON.stringify({ session_id: session, llm: { partial_text: text, is_final: true } }));
+        if (TTS_ENABLED && text) {
+          void speak(text).catch((err) =>
+            ws.send(JSON.stringify({ session_id: session, health: { state: "error", message: `tts: ${err.message}` } })),
+          );
+          ws.send(JSON.stringify({ session_id: session, tts: { audio: new Uint8Array(), is_final: true } }));
+        }
       }
     },
   ).catch((err) => {

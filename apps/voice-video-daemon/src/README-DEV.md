@@ -6,7 +6,7 @@
 - Proto 生成：`pnpm --filter @mycat/voice-video-daemon run proto:fetch && pnpm --filter @mycat/voice-video-daemon run proto:gen`
   - 生成产物：`src/gen/voice.ts`
   - 下载的 `protoc` 位于 `.tools/`，已在 .gitignore；需要时可手动删除。
-- ASR/TTS stub：`src/whisper.ts`（whisper.cpp CLI）+ `src/tts-macos.ts`（macOS `say`）。
+- ASR/TTS stub：`src/whisper.ts`（whisper.cpp CLI）+ `src/tts-macos.ts`（macOS `say`，启用 `MYCAT_TTS=1`）。
 
 ## 集成计划
 - ASR：通过 spawn Whisper.cpp（Metal），流式切片；增加重用模型缓存。
