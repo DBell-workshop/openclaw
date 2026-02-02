@@ -15,7 +15,7 @@
 - 健康检查：ASR/TTS 子进程心跳 + 最近延迟/丢包指标。
 
 ## 临时调试
-- `scripts/demo/push-to-talk.ts`：模拟按住说话上传 PCM；待接入音频链路。
+- `scripts/demo/push-to-talk.ts`：读取 WAV/PCM，base64 发送到 WS，打印 ASR/LLM 回显。
 - `scripts/demo/loopback.ts`：回声测试（当前为占位，等待真实流接入）。
 - `scripts/demo/ws-loop-client.ts`：连本地 WS，发送文本/控制并查看回显。
 
