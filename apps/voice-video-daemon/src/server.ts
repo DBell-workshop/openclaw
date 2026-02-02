@@ -19,6 +19,7 @@ const TMP_ROOT = process.env.MYCAT_TMP ?? path.join(os.tmpdir(), "mycat-voice");
 const ECHO_LLM = process.env.MYCAT_ECHO_LLM === "1";
 const TTS_ENABLED = process.env.MYCAT_TTS === "1";
 const TTS_STREAM = process.env.MYCAT_TTS_STREAM === "1";
+const TTS_CHUNK_MS = Number(process.env.MYCAT_TTS_CHUNK_MS ?? 40); // 40ms chunks by default
 
 function buildHealth(): ServerMessage {
   return {
@@ -148,9 +149,7 @@ async function handleAudio(ws: Bun.WebSocket, state: ServerState, audio: any) {
         if (TTS_ENABLED && text) {
           if (TTS_STREAM) {
             synthesizeToPcmWave(text)
-              .then(({ pcm, sampleRate }) => {
-                ws.send(JSON.stringify({ session_id: session, tts: { audio: pcm, is_opus: false, is_final: true, sample_rate: sampleRate } }));
-              })
+              .then(({ pcm, sampleRate }) => streamPcmChunks(ws, session, pcm, sampleRate, TTS_CHUNK_MS))
               .catch((err) =>
                 ws.send(JSON.stringify({ session_id: session, health: { state: "error", message: `tts: ${err.message}` } })),
               );
@@ -166,4 +165,25 @@ async function handleAudio(ws: Bun.WebSocket, state: ServerState, audio: any) {
   ).catch((err) => {
     ws.send(JSON.stringify({ session_id: session, health: { state: "error", message: err.message } }));
   });
+}
+
+function streamPcmChunks(ws: Bun.WebSocket, session: string, pcm: Buffer, sampleRate: number, chunkMs: number) {
+  const bytesPerSample = 2; // 16-bit LE mono
+  const bytesPerChunk = Math.max(1, Math.floor((sampleRate * bytesPerSample * chunkMs) / 1000));
+  for (let offset = 0; offset < pcm.length; offset += bytesPerChunk) {
+    const end = Math.min(offset + bytesPerChunk, pcm.length);
+    const slice = pcm.subarray(offset, end);
+    const is_final = end >= pcm.length;
+    ws.send(
+      JSON.stringify({
+        session_id: session,
+        tts: {
+          audio_base64: slice.toString("base64"),
+          is_opus: false,
+          is_final,
+          sample_rate: sampleRate,
+        },
+      }),
+    );
+  }
 }

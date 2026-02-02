@@ -52,8 +52,10 @@ export interface ActionEvent {
 
 export interface TtsChunk {
   audio: Uint8Array;
+  audio_base64?: string;
   is_opus?: boolean;
   is_final?: boolean;
+  sample_rate?: number;
 }
 
 export interface Health {
