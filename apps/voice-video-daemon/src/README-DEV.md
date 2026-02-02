@@ -6,7 +6,8 @@
 - Proto 生成：`pnpm --filter @mycat/voice-video-daemon run proto:fetch && pnpm --filter @mycat/voice-video-daemon run proto:gen`
   - 生成产物：`src/gen/voice.ts`
   - 下载的 `protoc` 位于 `.tools/`，已在 .gitignore；需要时可手动删除。
-- ASR/TTS stub：`src/whisper.ts`（whisper.cpp CLI）+ `src/tts-macos.ts`（macOS `say`；`MYCAT_TTS=1` 启用，`MYCAT_TTS_STREAM=1` 返回 WAV PCM 到客户端）。
+- ASR/TTS：`src/whisper.ts`（whisper.cpp CLI）；`src/tts-macos.ts`（macOS `say`）。TTS 开关：`MYCAT_TTS=1`；流式：`MYCAT_TTS_STREAM=1`；`MYCAT_TTS_ENGINE=mac|edge|styletts2|matcha`。
+- Python TTS（StyleTTS2/Matcha）：需 python3；自动检查/安装缺失包：`MYCAT_TTS_PIP_AUTO=1`，或手动 `python3 -m pip install styletts2 matcha-tts`。可指定 `MYCAT_PYTHON`、`MYCAT_TTS_MODEL`（huggingface repo/name）。
 
 ## 集成计划
 - ASR：通过 spawn Whisper.cpp（Metal），流式切片；增加重用模型缓存。

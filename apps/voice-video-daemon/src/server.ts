@@ -10,7 +10,7 @@ import { transcribePcm } from "./whisper";
 import { speak, synthesizeToPcmWave } from "./tts-macos";
 import { OpusDecoder } from "@discordjs/opus";
 import { streamEdgeTts } from "./tts-edge";
-import { spawn } from "child_process";
+import { spawn, execFile } from "child_process";
 
 type ServerState = {
   startMs: number;
@@ -27,6 +27,7 @@ const TTS_ENGINE = process.env.MYCAT_TTS_ENGINE || "mac"; // mac|edge|styletts2|
 const OPUS_DECODER = new OpusDecoder(16000, 1);
 const PYTHON_BIN = process.env.MYCAT_PYTHON || "python3";
 const PY_TTS_WORKER = path.resolve(new URL(".", import.meta.url).pathname, "../python/tts_worker.py");
+const AUTO_PIP = process.env.MYCAT_TTS_PIP_AUTO === "1";
 
 function buildHealth(): ServerMessage {
   return {
@@ -200,6 +201,7 @@ async function runTts(ws: Bun.WebSocket, session: string, text: string) {
   }
 
   if (TTS_ENGINE === "styletts2" || TTS_ENGINE === "matcha") {
+    await ensurePythonDeps(TTS_ENGINE);
     await streamPythonTts(ws, session, text);
     return;
   }
@@ -264,6 +266,31 @@ async function streamPythonTts(ws: Bun.WebSocket, session: string, text: string)
     child.on("exit", (code) => {
       if (code === 0) return;
       reject(new Error(`python tts exited ${code}`));
+    });
+  });
+}
+
+async function ensurePythonDeps(engine: string) {
+  const moduleName = engine === "styletts2" ? "styletts2" : "matcha_tts";
+  try {
+    await execFileAsync(PYTHON_BIN, ["-c", `import ${moduleName}`]);
+    return;
+  } catch (err: any) {
+    if (!AUTO_PIP) {
+      throw new Error(
+        `Python module '${moduleName}' missing. Install with: ${PYTHON_BIN} -m pip install styletts2 matcha-tts (or set MYCAT_TTS_PIP_AUTO=1 to auto-install)`,
+      );
+    }
+    const pkg = engine === "styletts2" ? "styletts2" : "matcha-tts";
+    await execFileAsync(PYTHON_BIN, ["-m", "pip", "install", pkg]);
+  }
+}
+
+function execFileAsync(cmd: string, args: string[]) {
+  return new Promise<void>((resolve, reject) => {
+    execFile(cmd, args, (err) => {
+      if (err) return reject(err);
+      resolve();
     });
   });
 }
