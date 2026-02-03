@@ -7,6 +7,7 @@ import SwiftUI
 
 struct GeneralSettings: View {
     @Bindable var state: AppState
+    @Bindable var voiceDaemon: VoiceDaemonManager
     @AppStorage(cameraEnabledKey) private var cameraEnabled: Bool = false
     @AppStorage(voiceWidgetUrlKey) private var voiceWidgetUrl: String = "http://localhost:5173"
     @AppStorage(voiceWidgetAutoWakeKey) private var voiceWidgetAutoWake: Bool = true
@@ -21,6 +22,11 @@ struct GeneralSettings: View {
     private let isPreview = ProcessInfo.processInfo.isPreview
     private var isNixMode: Bool { ProcessInfo.processInfo.isNixMode }
     private var remoteLabelWidth: CGFloat { 88 }
+
+    init(state: AppState = AppStateStore.shared, voiceDaemon: VoiceDaemonManager = .shared) {
+        self.state = state
+        self.voiceDaemon = voiceDaemon
+    }
 
     var body: some View {
         ScrollView(.vertical) {
@@ -85,6 +91,8 @@ struct GeneralSettings: View {
                         title: "Auto-show Voice Widget on speech",
                         subtitle: "Show the floating widget when you speak, then hide it after the session ends.",
                         binding: self.$voiceWidgetAutoWake)
+
+                    self.voiceDaemonSection
 
                     SettingsToggleRow(
                         title: "Enable Peekaboo Bridge",
@@ -162,6 +170,64 @@ struct GeneralSettings: View {
                 self.remoteCard
             }
         }
+    }
+
+    private var voiceDaemonSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Voice daemon")
+                .font(.body)
+            Text(self.voiceDaemonStatusLabel)
+                .font(.callout.weight(.semibold))
+            if let note = self.voiceDaemon.statusNote, !note.isEmpty {
+                Text(note)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            if let err = self.voiceDaemon.lastError, !err.isEmpty {
+                Text(err)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+            }
+            HStack(spacing: 8) {
+                Button(self.voiceDaemonActionLabel) {
+                    self.voiceDaemon.start()
+                }
+                .disabled(self.voiceDaemonIsBusy)
+            }
+        }
+    }
+
+    private var voiceDaemonStatusLabel: String {
+        switch self.voiceDaemon.status {
+        case .stopped:
+            return "Stopped"
+        case .starting:
+            return "Starting…"
+        case let .running(details):
+            if let details, !details.isEmpty {
+                return "Running (\(details))"
+            }
+            return "Running"
+        case let .failed(reason):
+            if reason.isEmpty { return "Failed" }
+            return "Failed (\(reason))"
+        }
+    }
+
+    private var voiceDaemonActionLabel: String {
+        switch self.voiceDaemon.status {
+        case .running:
+            return "Restart voice daemon"
+        case .starting:
+            return "Starting…"
+        case .stopped, .failed:
+            return "Retry voice daemon"
+        }
+    }
+
+    private var voiceDaemonIsBusy: Bool {
+        if case .starting = self.voiceDaemon.status { return true }
+        return false
     }
 
     private var remoteCard: some View {
