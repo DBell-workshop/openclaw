@@ -9,6 +9,7 @@ type Overlay = {
   setState: (s: WidgetState) => void;
   setAsr: (t: string) => void;
   setLlm: (t: string) => void;
+  setLevel: (level: number) => void;
   teardown: () => void;
   setUrl: (t: string) => void;
 };
@@ -55,20 +56,23 @@ export function startVoiceWidget(url: string = DEFAULT_URL) {
   ui.setState("idle");
   ui.onStart = async () => {
     await ensureConnection();
-    await mic.start(({ base64, sampleRate, end }) => {
-      if (!ws || ws.readyState !== WebSocket.OPEN) return;
-      ws.send(
-        JSON.stringify({
-          audio: {
-            data: base64,
-            sample_rate: sampleRate,
-            is_opus: true,
-            end_of_utterance: end,
-          },
-        }),
-      );
-      if (end) ui.setState("thinking");
-    });
+    await mic.start(
+      ({ base64, sampleRate, end }) => {
+        if (!ws || ws.readyState !== WebSocket.OPEN) return;
+        ws.send(
+          JSON.stringify({
+            audio: {
+              data: base64,
+              sample_rate: sampleRate,
+              is_opus: true,
+              end_of_utterance: end,
+            },
+          }),
+        );
+        if (end) ui.setState("thinking");
+      },
+      (level) => ui.setLevel(level),
+    );
     ui.setState("listening");
   };
 
@@ -134,6 +138,10 @@ function createWidget(): Overlay & { onStart?: () => void; onStop?: () => void; 
     },
     setLlm: (t: string) => {
       llmEl.textContent = `LLM: ${t}`;
+    },
+    setLevel: (level: number) => {
+      const clamped = Math.max(0, Math.min(1, level));
+      root.style.setProperty("--voice-level", clamped.toString());
     },
     pushAction: (a: any) => {
       actions.unshift({
