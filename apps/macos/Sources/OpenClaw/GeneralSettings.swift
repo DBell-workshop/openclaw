@@ -10,6 +10,7 @@ struct GeneralSettings: View {
     @AppStorage(cameraEnabledKey) private var cameraEnabled: Bool = false
     @AppStorage(voiceWidgetUrlKey) private var voiceWidgetUrl: String = "http://localhost:5173"
     @AppStorage(voiceWidgetAutoWakeKey) private var voiceWidgetAutoWake: Bool = true
+    @AppStorage(voiceWidgetLangKey) private var voiceWidgetLang: String = "en"
     private let healthStore = HealthStore.shared
     private let gatewayManager = GatewayProcessManager.shared
     @State private var gatewayDiscovery = GatewayDiscoveryModel(
@@ -65,6 +66,18 @@ struct GeneralSettings: View {
                         TextField("http://localhost:5173", text: self.$voiceWidgetUrl)
                             .textFieldStyle(.roundedBorder)
                         Text("Used by the Voice Widget panel. Point to the local control UI or a dev server.")
+                            .font(.footnote)
+                            .foregroundStyle(.tertiary)
+                    }
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Voice widget language")
+                            .font(.body)
+                        Picker("Voice widget language", selection: self.$voiceWidgetLang) {
+                            Text("English").tag("en")
+                            Text("中文").tag("zh")
+                        }
+                        .pickerStyle(.segmented)
+                        Text("Used as the default UI language; you can still toggle inside the widget.")
                             .font(.footnote)
                             .foregroundStyle(.tertiary)
                     }

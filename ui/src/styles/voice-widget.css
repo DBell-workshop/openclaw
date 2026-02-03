@@ -22,7 +22,16 @@
   opacity: 0.85;
 }
 .voice-widget__header .title { font-weight: 600; }
-.voice-widget__header .url { font-size: 11px; opacity: 0.7; }
+.voice-widget__header .url { font-size: 11px; opacity: 0.7; margin-left: auto; }
+.voice-widget__header .lang {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  cursor: pointer;
+}
 .voice-widget .dot {
   width: 10px;
   height: 10px;
@@ -71,6 +80,33 @@
   50% { height: calc(24px + var(--voice-level, 0) * 20px); }
   100% { height: calc(8px + var(--voice-level, 0) * 12px); }
 }
+
+.voice-widget__status {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.voice-widget__status .status {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  text-transform: uppercase;
+  letter-spacing: 0.35px;
+  opacity: 0.9;
+}
+.voice-widget__status .status[data-state="connecting"] { color: #fde68a; background: rgba(251, 191, 36, 0.2); }
+.voice-widget__status .status[data-state="ready"] { color: #86efac; background: rgba(74, 222, 128, 0.18); }
+.voice-widget__status .status[data-state="listening"] { color: #7dd3fc; background: rgba(56, 189, 248, 0.2); }
+.voice-widget__status .status[data-state="transcribing"],
+.voice-widget__status .status[data-state="thinking"],
+.voice-widget__status .status[data-state="streaming"],
+.voice-widget__status .status[data-state="queued"] { color: #fde68a; background: rgba(250, 204, 21, 0.2); }
+.voice-widget__status .status[data-state="partial"] { color: #bfdbfe; background: rgba(147, 197, 253, 0.2); }
+.voice-widget__status .status[data-state="final"],
+.voice-widget__status .status[data-state="done"],
+.voice-widget__status .status[data-state="speaking"] { color: #e9d5ff; background: rgba(192, 132, 252, 0.18); }
+.voice-widget__status .status[data-state="error"] { color: #fecdd3; background: rgba(248, 113, 113, 0.2); }
 
 .voice-widget__text {
   font-size: 12px;

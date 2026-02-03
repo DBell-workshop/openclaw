@@ -10,6 +10,7 @@ final class VoiceWidgetWebPanelController {
     private var webView: WKWebView?
     private var moveObserver: NSObjectProtocol?
     private var resizeObserver: NSObjectProtocol?
+    private var defaultsObserver: NSObjectProtocol?
     private var autoWakeVisible = false
     private var autoHideWorkItem: DispatchWorkItem?
 
@@ -96,14 +97,37 @@ final class VoiceWidgetWebPanelController {
         self.webView = webView
         self.panel = panel
         self.installFrameObservers(for: panel)
+        self.installDefaultsObserver()
     }
 
     private func loadIfNeeded() {
         guard let webView else { return }
-        let raw = UserDefaults.standard.string(forKey: voiceWidgetUrlKey) ?? "http://localhost:5173"
-        guard let url = URL(string: raw) else { return }
+        guard let url = self.buildWidgetUrl() else { return }
         if webView.url != url {
             webView.load(URLRequest(url: url))
+        }
+    }
+
+    private func buildWidgetUrl() -> URL? {
+        let raw = UserDefaults.standard.string(forKey: voiceWidgetUrlKey) ?? "http://localhost:5173"
+        guard var components = URLComponents(string: raw) else { return nil }
+        let lang = UserDefaults.standard.string(forKey: voiceWidgetLangKey) ?? "en"
+        let normalized = (lang == "zh") ? "zh" : "en"
+        var items = components.queryItems ?? []
+        items.removeAll { $0.name == "lang" }
+        items.append(URLQueryItem(name: "lang", value: normalized))
+        components.queryItems = items
+        return components.url
+    }
+
+    private func installDefaultsObserver() {
+        if self.defaultsObserver != nil { return }
+        self.defaultsObserver = NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification,
+            object: UserDefaults.standard,
+            queue: .main
+        ) { [weak self] _ in
+            self?.loadIfNeeded()
         }
     }
 
