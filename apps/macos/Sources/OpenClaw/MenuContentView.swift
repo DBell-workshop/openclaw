@@ -121,6 +121,13 @@ struct MenuContent: View {
             } label: {
                 Label("Open Chat", systemImage: "bubble.left.and.bubble.right")
             }
+            Button {
+                Task { @MainActor in
+                    VoiceWidgetWebPanelController.shared.toggle()
+                }
+            } label: {
+                Label("Voice Widget", systemImage: "waveform.circle")
+            }
             if self.state.canvasEnabled {
                 Button {
                     Task { @MainActor in

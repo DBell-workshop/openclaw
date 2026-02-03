@@ -8,6 +8,7 @@ import SwiftUI
 struct GeneralSettings: View {
     @Bindable var state: AppState
     @AppStorage(cameraEnabledKey) private var cameraEnabled: Bool = false
+    @AppStorage(voiceWidgetUrlKey) private var voiceWidgetUrl: String = "http://localhost:5173"
     private let healthStore = HealthStore.shared
     private let gatewayManager = GatewayProcessManager.shared
     @State private var gatewayDiscovery = GatewayDiscoveryModel(
@@ -56,6 +57,16 @@ struct GeneralSettings: View {
                         title: "Allow Camera",
                         subtitle: "Allow the agent to capture a photo or short video via the built-in camera.",
                         binding: self.$cameraEnabled)
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Voice widget URL")
+                            .font(.body)
+                        TextField("http://localhost:5173", text: self.$voiceWidgetUrl)
+                            .textFieldStyle(.roundedBorder)
+                        Text("Used by the Voice Widget panel. Point to the local control UI or a dev server.")
+                            .font(.footnote)
+                            .foregroundStyle(.tertiary)
+                    }
 
                     SettingsToggleRow(
                         title: "Enable Peekaboo Bridge",
