@@ -428,6 +428,23 @@ function createWidget(): Overlay & {
     }
     controller.onApproval?.(id, action === "approve" ? "allow-once" : "deny");
   });
+  const externalLogHandler = (event: Event) => {
+    const detail = (event as CustomEvent).detail as
+      | { text?: string; level?: "info" | "warn" | "error"; error?: string | null }
+      | undefined;
+    if (!detail) return;
+    if (detail.text) {
+      controller.addLog(detail.text, detail.level ?? "info");
+    }
+    if ("error" in detail) {
+      controller.setError(detail.error ?? null);
+    }
+  };
+  window.addEventListener("mycat-voice-log", externalLogHandler);
+  controller.teardown = () => {
+    window.removeEventListener("mycat-voice-log", externalLogHandler);
+    root.remove();
+  };
   renderLabels();
 
   return controller;

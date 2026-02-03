@@ -17,6 +17,8 @@ final class VoiceDaemonManager {
     private(set) var status: Status = .stopped
     private(set) var statusNote: String?
     private(set) var lastError: String?
+    private var lastWidgetNote: String?
+    private var lastWidgetError: String?
     private var process: Process?
     private var stdoutPipe: Pipe?
     private var stderrPipe: Pipe?
@@ -36,22 +38,22 @@ final class VoiceDaemonManager {
 
     private func startAsync() async {
         self.stopProcess()
-        self.lastError = nil
-        self.statusNote = "Preparing voice daemon…"
+        self.setLastError(nil)
+        self.setStatusNote("Preparing voice daemon…")
 
         guard let entry = await self.resolveEntrypoint() else {
             self.status = .failed("voice daemon entrypoint missing")
-            self.lastError = "Voice daemon entrypoint missing."
-            self.statusNote = nil
+            self.setLastError("Voice daemon entrypoint missing.")
+            self.setStatusNote(nil)
             self.logger.error("voice daemon start failed: entrypoint missing")
             return
         }
 
-        self.statusNote = "Checking runtime…"
+        self.setStatusNote("Checking runtime…")
         guard let bunPath = await self.ensureBunInstalled() else {
             self.status = .failed("bun not available")
-            self.lastError = "Bun is not available. Install bun and retry."
-            self.statusNote = nil
+            self.setLastError("Bun is not available. Install bun and retry.")
+            self.setStatusNote(nil)
             self.logger.error("voice daemon start failed: bun not available")
             return
         }
@@ -63,8 +65,8 @@ final class VoiceDaemonManager {
            !(await self.ensureDependencies(workDir: workDir, bunPath: bunPath, bunDir: bunDir))
         {
             self.status = .failed("voice daemon deps missing")
-            self.lastError = "Voice daemon dependencies failed to install."
-            self.statusNote = nil
+            self.setLastError("Voice daemon dependencies failed to install.")
+            self.setStatusNote(nil)
             self.logger.error("voice daemon start failed: deps missing")
             return
         }
@@ -102,13 +104,14 @@ final class VoiceDaemonManager {
             try process.run()
             self.process = process
             self.status = .running(details: "pid \(process.processIdentifier)")
-            self.statusNote = nil
-            self.lastError = nil
+            self.setStatusNote(nil)
+            self.setLastError(nil)
+            self.pushWidgetLog("voice daemon running", level: "info")
             self.logger.info("voice daemon started pid=\(process.processIdentifier)")
         } catch {
             self.status = .failed("failed to start")
-            self.lastError = "Failed to start voice daemon."
-            self.statusNote = nil
+            self.setLastError("Failed to start voice daemon.")
+            self.setStatusNote(nil)
             self.logger.error("voice daemon start failed: \(error.localizedDescription)")
         }
     }
@@ -116,7 +119,7 @@ final class VoiceDaemonManager {
     func stop() {
         self.stopProcess()
         self.status = .stopped
-        self.statusNote = nil
+        self.setStatusNote(nil)
     }
 
     private func stopProcess() {
@@ -161,7 +164,7 @@ final class VoiceDaemonManager {
 
         if needsCopy {
             do {
-                self.statusNote = "Preparing voice daemon files…"
+                self.setStatusNote("Preparing voice daemon files…")
                 if FileManager.default.fileExists(atPath: targetRoot.path) {
                     try FileManager.default.removeItem(at: targetRoot)
                 }
@@ -172,8 +175,8 @@ final class VoiceDaemonManager {
                 try FileManager.default.copyItem(at: sourceRoot, to: targetRoot)
                 try version.write(to: marker, atomically: true, encoding: .utf8)
             } catch {
-                self.lastError = "Failed to prepare voice daemon files."
-                self.statusNote = nil
+                self.setLastError("Failed to prepare voice daemon files.")
+                self.setStatusNote(nil)
                 self.logger.error("voice daemon copy failed: \(error.localizedDescription)")
                 return nil
             }
@@ -185,7 +188,7 @@ final class VoiceDaemonManager {
     }
 
     private func ensureBunInstalled() async -> String? {
-        self.statusNote = "Checking bun…"
+        self.setStatusNote("Checking bun…")
         if let bun = CommandResolver.findExecutable(
             named: "bun",
             searchPaths: CommandResolver.preferredPaths())
@@ -198,7 +201,7 @@ final class VoiceDaemonManager {
             return defaultPath.path
         }
 
-        self.statusNote = "Installing bun…"
+        self.setStatusNote("Installing bun…")
         self.logger.info("bun missing; attempting install")
         let install = await ShellExecutor.runDetailed(
             command: ["/bin/bash", "-lc", "curl -fsSL https://bun.sh/install | bash"],
@@ -224,7 +227,7 @@ final class VoiceDaemonManager {
             return true
         }
 
-        self.statusNote = "Installing voice dependencies…"
+        self.setStatusNote("Installing voice dependencies…")
         self.logger.info("voice daemon deps missing; installing")
         var env = ProcessInfo.processInfo.environment
         env["PATH"] = ([bunDir] + CommandResolver.preferredPaths()).joined(separator: ":")
@@ -260,5 +263,33 @@ final class VoiceDaemonManager {
         if components.scheme == "https" { components.scheme = "wss" }
         if components.scheme == "http" { components.scheme = "ws" }
         return components.url ?? url
+    }
+
+    private func setStatusNote(_ note: String?) {
+        self.statusNote = note
+        guard let note, !note.isEmpty else { return }
+        self.pushWidgetLog(note, level: "info")
+    }
+
+    private func setLastError(_ error: String?) {
+        self.lastError = error
+        if let error, !error.isEmpty {
+            if error != self.lastWidgetError {
+                self.lastWidgetError = error
+                VoiceWidgetWebPanelController.shared.pushVoiceError(error)
+                self.pushWidgetLog(error, level: "error")
+            }
+            return
+        }
+        if self.lastWidgetError != nil {
+            self.lastWidgetError = nil
+            VoiceWidgetWebPanelController.shared.pushVoiceError(nil)
+        }
+    }
+
+    private func pushWidgetLog(_ text: String, level: String) {
+        if text == self.lastWidgetNote { return }
+        self.lastWidgetNote = text
+        VoiceWidgetWebPanelController.shared.pushVoiceLog(text, level: level)
     }
 }

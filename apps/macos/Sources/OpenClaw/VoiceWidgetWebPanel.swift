@@ -3,7 +3,7 @@ import Foundation
 import WebKit
 
 @MainActor
-final class VoiceWidgetWebPanelController {
+final class VoiceWidgetWebPanelController: NSObject {
     static let shared = VoiceWidgetWebPanelController()
 
     private var panel: NSPanel?
@@ -15,6 +15,10 @@ final class VoiceWidgetWebPanelController {
     private var autoHideWorkItem: DispatchWorkItem?
 
     private let panelSize = NSSize(width: 340, height: 520)
+
+    private override init() {
+        super.init()
+    }
 
     func toggle() {
         if self.isVisible {
@@ -40,6 +44,7 @@ final class VoiceWidgetWebPanelController {
         } else {
             self.autoWakeVisible = true
         }
+        self.syncVoiceDaemonStatus()
     }
 
     func close() {
@@ -82,6 +87,7 @@ final class VoiceWidgetWebPanelController {
 
         let config = WKWebViewConfiguration()
         let webView = WKWebView(frame: .zero, configuration: config)
+        webView.navigationDelegate = self
         webView.translatesAutoresizingMaskIntoConstraints = false
 
         let container = NSView()
@@ -106,6 +112,43 @@ final class VoiceWidgetWebPanelController {
         if webView.url != url {
             webView.load(URLRequest(url: url))
         }
+    }
+
+    func pushVoiceLog(_ text: String, level: String = "info") {
+        self.sendWidgetEvent(name: "mycat-voice-log", detail: [
+            "text": text,
+            "level": level,
+        ])
+    }
+
+    func pushVoiceError(_ error: String?) {
+        self.sendWidgetEvent(name: "mycat-voice-log", detail: [
+            "error": error ?? NSNull(),
+        ])
+    }
+
+    private func syncVoiceDaemonStatus() {
+        let voice = VoiceDaemonManager.shared
+        if let note = voice.statusNote {
+            self.pushVoiceLog(note, level: "info")
+        }
+        if let err = voice.lastError, !err.isEmpty {
+            self.pushVoiceError(err)
+            self.pushVoiceLog(err, level: "error")
+        } else {
+            self.pushVoiceError(nil)
+        }
+    }
+
+    private func sendWidgetEvent(name: String, detail: [String: Any]) {
+        guard let webView else { return }
+        guard let data = try? JSONSerialization.data(withJSONObject: detail, options: []),
+              let json = String(data: data, encoding: .utf8)
+        else {
+            return
+        }
+        let script = "window.dispatchEvent(new CustomEvent('\(name)', { detail: \(json) }));"
+        webView.evaluateJavaScript(script, completionHandler: nil)
     }
 
     private func buildWidgetUrl() -> URL? {
@@ -170,5 +213,11 @@ final class VoiceWidgetWebPanelController {
 
     private func storeFrame(_ frame: NSRect) {
         UserDefaults.standard.set(NSStringFromRect(frame), forKey: voiceWidgetFrameKey)
+    }
+}
+
+extension VoiceWidgetWebPanelController: WKNavigationDelegate {
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        self.syncVoiceDaemonStatus()
     }
 }
