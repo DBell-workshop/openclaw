@@ -13,6 +13,7 @@ message ClientMessage {
   oneof msg {
     AudioChunk audio = 1;
     Control control = 2;
+    ApprovalDecision approval = 3;
   }
 }
 
@@ -27,6 +28,11 @@ message Control {
   string session_id = 1;
   bool push_to_talk = 2; // client is holding the talk key
   bool stop = 3; // request graceful stop
+}
+
+message ApprovalDecision {
+  string id = 1;
+  string decision = 2; // allow-once|allow-always|deny
 }
 
 message ServerMessage {

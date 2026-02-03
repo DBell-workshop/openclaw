@@ -134,6 +134,26 @@
 .voice-widget__actions-list .action-item:last-child { border-bottom: none; }
 .voice-widget__actions-list .title { font-weight: 600; }
 .voice-widget__actions-list .meta { opacity: 0.75; font-size: 11px; }
+.voice-widget__actions-list .action-controls {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.voice-widget__actions-list .action-controls button {
+  flex: 1;
+  padding: 4px 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 11px;
+  cursor: pointer;
+}
+.voice-widget__actions-list .action-controls button:hover { background: rgba(255, 255, 255, 0.14); }
+.voice-widget__actions-list .action-controls button[data-action="deny"] {
+  background: rgba(248, 113, 113, 0.18);
+  border-color: rgba(248, 113, 113, 0.4);
+}
 .badge { display: inline-block; padding: 1px 6px; border-radius: 999px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; }
 .badge--high { background: rgba(248, 113, 113, 0.2); color: #fecdd3; }
 .badge--medium { background: rgba(251, 191, 36, 0.2); color: #fcd34d; }

@@ -65,6 +65,7 @@ function parseClientMessage(data: unknown): ClientMessage | null {
     const obj = typeof data === "string" ? JSON.parse(data) : JSON.parse(Buffer.from(data as ArrayBuffer).toString("utf8"));
     if (obj.audio) return { audio: obj.audio };
     if (obj.control) return { control: obj.control };
+    if (obj.approval) return { approval: obj.approval };
   } catch {
     return null;
   }
@@ -139,6 +140,24 @@ export async function startServer() {
         const msg = parseClientMessage(raw);
         if (!msg) {
           ws.send(JSON.stringify({ session_id: "loopback", health: { state: "error", message: "bad message" } }));
+          return;
+        }
+        if ("approval" in msg && msg.approval) {
+          const approval = msg.approval;
+          if (!approval.id || !approval.decision) {
+            ws.send(JSON.stringify({ session_id: "loopback", health: { state: "error", message: "missing approval fields" } }));
+            return;
+          }
+          if (!gatewayClient) {
+            ws.send(
+              JSON.stringify({
+                session_id: "loopback",
+                health: { state: "error", message: "gateway not enabled" },
+              }),
+            );
+            return;
+          }
+          gatewayClient.resolveApproval({ ws, voiceSessionId: "default", approval });
           return;
         }
         if ("control" in msg && msg.control?.stop) {

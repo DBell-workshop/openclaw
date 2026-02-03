@@ -13,6 +13,7 @@
   - `MYCAT_GATEWAY_SESSION`（默认 `voice`）
   - `MYCAT_GATEWAY_THINKING` / `MYCAT_GATEWAY_TIMEOUT_MS`（可选）
   - 调试回声：`MYCAT_ECHO_LLM=1`（绕过网关）
+- Exec 审批：Voice Widget 的 Approve/Reject 会调用 `exec.approval.resolve`（需要网关在线）。
 - Python TTS（StyleTTS2/Matcha）：需 python3；自动检查/安装缺失包：`MYCAT_TTS_PIP_AUTO=1`，或手动 `python3 -m pip install styletts2 matcha-tts`。可指定 `MYCAT_PYTHON`、`MYCAT_TTS_MODEL`（huggingface repo/name）。
 - Action demo：`MYCAT_ACTION_DEMO=1` 会在 ASR 结束时推送模拟 action 事件（planned → running → done），用于前端时间线联调。
 

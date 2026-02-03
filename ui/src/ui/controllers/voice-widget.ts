@@ -136,12 +136,22 @@ export function startVoiceWidget(url: string = DEFAULT_URL) {
     ui.setLlmStatus("idle");
   };
 
+  ui.onApproval = (id, decision) => {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    ws.send(JSON.stringify({ approval: { id, decision } }));
+  };
+
   return { stop: () => ui.teardown() };
 }
 
 type ActionItem = { id: string; title?: string; status?: string; risk?: string; approval?: boolean };
 
-function createWidget(): Overlay & { onStart?: () => void; onStop?: () => void; pushAction: (a: any) => void } {
+function createWidget(): Overlay & {
+  onStart?: () => void;
+  onStop?: () => void;
+  onApproval?: (id: string, decision: "allow-once" | "deny") => void;
+  pushAction: (a: any) => void;
+} {
   const root = document.createElement("div");
   root.className = "voice-widget";
   root.innerHTML = `
@@ -188,6 +198,9 @@ function createWidget(): Overlay & { onStart?: () => void; onStop?: () => void; 
     en: {
       start: "Start",
       stop: "Stop",
+      approve: "Approve",
+      reject: "Reject",
+      needApproval: "need approval",
       asrPrefix: "ASR:",
       llmPrefix: "LLM:",
       idle: "idle",
@@ -202,11 +215,18 @@ function createWidget(): Overlay & { onStart?: () => void; onStop?: () => void; 
       partial: "partial",
       final: "final",
       done: "done",
+      planned: "planned",
+      running: "running",
+      approved: "approved",
+      rejected: "rejected",
       error: "error",
     },
     zh: {
       start: "开始",
       stop: "停止",
+      approve: "同意",
+      reject: "拒绝",
+      needApproval: "需要审批",
       asrPrefix: "ASR：",
       llmPrefix: "LLM：",
       idle: "空闲",
@@ -221,6 +241,10 @@ function createWidget(): Overlay & { onStart?: () => void; onStop?: () => void; 
       partial: "部分结果",
       final: "最终结果",
       done: "完成",
+      planned: "待审批",
+      running: "执行中",
+      approved: "已批准",
+      rejected: "已拒绝",
       error: "错误",
     },
   };
@@ -255,11 +279,13 @@ function createWidget(): Overlay & { onStart?: () => void; onStop?: () => void; 
     asrStatusEl.textContent = `ASR ${strings[asrStatus] ?? asrStatus}`;
     llmStatusEl.textContent = `LLM ${strings[llmStatus] ?? llmStatus}`;
     langBtn.textContent = lang === "en" ? "EN" : "中文";
+    renderActions(actions, actionList, strings);
   }
 
   const controller = {
     onStart: undefined as (() => void) | undefined,
     onStop: undefined as (() => void) | undefined,
+    onApproval: undefined as ((id: string, decision: "allow-once" | "deny") => void) | undefined,
     setUrl: (t: string) => {
       urlEl.textContent = t.replace(/^ws:\/\//, "");
     },
@@ -311,7 +337,7 @@ function createWidget(): Overlay & { onStart?: () => void; onStop?: () => void; 
       } else {
         actions.unshift(next);
       }
-      renderActions(actions, actionList);
+      renderActions(actions, actionList, STRINGS[lang]);
     },
     teardown: () => root.remove(),
   };
@@ -319,19 +345,44 @@ function createWidget(): Overlay & { onStart?: () => void; onStop?: () => void; 
   startBtn.onclick = () => controller.onStart?.();
   stopBtn.onclick = () => controller.onStop?.();
   langBtn.onclick = () => setLang(lang === "en" ? "zh" : "en");
+  actionList.addEventListener("click", (event) => {
+    const target = event.target as HTMLElement | null;
+    const button = target?.closest("button[data-action]") as HTMLButtonElement | null;
+    if (!button) return;
+    const action = button.dataset.action;
+    const item = button.closest(".action-item") as HTMLElement | null;
+    const id = item?.dataset.id;
+    if (!id || (action !== "approve" && action !== "deny")) return;
+    const entry = actions.find((row) => row.id === id);
+    if (entry) {
+      entry.status = action === "approve" ? "approved" : "rejected";
+      renderActions(actions, actionList, STRINGS[lang]);
+    }
+    controller.onApproval?.(id, action === "approve" ? "allow-once" : "deny");
+  });
   renderLabels();
 
   return controller;
 }
-function renderActions(items: ActionItem[], container: HTMLElement) {
+function renderActions(items: ActionItem[], container: HTMLElement, strings: Record<string, string>) {
   container.innerHTML = items
     .slice(0, 5)
     .map((a) => {
       const riskBadge = a.risk ? `<span class="badge badge--${a.risk}">${a.risk}</span>` : "";
-      const approval = a.approval ? '<span class="badge badge--approval">need approval</span>' : "";
-      return `<div class="action-item" data-status="${a.status}">
+      const approval = a.approval ? `<span class="badge badge--approval">${strings.needApproval}</span>` : "";
+      const needsDecision =
+        a.approval && !["approved", "rejected", "done", "error"].includes(a.status || "");
+      const controls = needsDecision
+        ? `<div class="action-controls">
+            <button data-action="approve">${strings.approve}</button>
+            <button data-action="deny">${strings.reject}</button>
+          </div>`
+        : "";
+      const statusLabel = strings[a.status || ""] ?? a.status ?? "";
+      return `<div class="action-item" data-status="${a.status}" data-id="${a.id}">
         <div class="title">${a.title}</div>
-        <div class="meta">${a.status}${riskBadge ? " • " + riskBadge : ""}${approval ? " • " + approval : ""}</div>
+        <div class="meta">${statusLabel}${riskBadge ? " • " + riskBadge : ""}${approval ? " • " + approval : ""}</div>
+        ${controls}
       </div>`;
     })
     .join("");

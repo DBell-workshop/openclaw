@@ -20,6 +20,29 @@ type AgentEventPayload = {
   data?: Record<string, unknown>;
 };
 
+type ExecApprovalRequested = {
+  id?: string;
+  request?: {
+    command?: string | null;
+    cwd?: string | null;
+    host?: string | null;
+    security?: string | null;
+    ask?: string | null;
+    agentId?: string | null;
+    sessionKey?: string | null;
+    resolvedPath?: string | null;
+  };
+  createdAtMs?: number;
+  expiresAtMs?: number;
+};
+
+type ExecApprovalResolved = {
+  id?: string;
+  decision?: string;
+  resolvedBy?: string | null;
+  ts?: number;
+};
+
 type RunContext = {
   ws: Bun.WebSocket;
   voiceSessionId: string;
@@ -67,6 +90,7 @@ export class GatewayVoiceClient {
   private opts: GatewayVoiceClientOptions;
   private runMap = new Map<string, RunContext>();
   private sessionMap = new Map<string, SessionLink>();
+  private approvalMap = new Map<string, SessionLink>();
   private readyPromise: Promise<void>;
   private resolveReady?: () => void;
   private readyAtMs: number | null = null;
@@ -85,6 +109,7 @@ export class GatewayVoiceClient {
       clientVersion: "dev",
       platform: process.platform,
       mode: GATEWAY_CLIENT_MODES.BACKEND,
+      scopes: ["operator.admin", "operator.approvals"],
       minProtocol: PROTOCOL_VERSION,
       maxProtocol: PROTOCOL_VERSION,
       onHelloOk: () => this.markReady(),
@@ -152,12 +177,36 @@ export class GatewayVoiceClient {
     }
   }
 
+  async resolveApproval(params: {
+    ws: Bun.WebSocket;
+    voiceSessionId: string;
+    approval: { id: string; decision: "allow-once" | "allow-always" | "deny" };
+  }) {
+    try {
+      await this.waitForReady();
+      await this.client.request("exec.approval.resolve", {
+        id: params.approval.id,
+        decision: params.approval.decision,
+      });
+    } catch (err) {
+      this.opts.onError({
+        ws: params.ws,
+        voiceSessionId: params.voiceSessionId,
+        runId: params.approval.id,
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
   dropSocket(ws: Bun.WebSocket) {
     for (const [runId, entry] of this.runMap) {
       if (entry.ws === ws) this.runMap.delete(runId);
     }
     for (const [sessionKey, entry] of this.sessionMap) {
       if (entry.ws === ws) this.sessionMap.delete(sessionKey);
+    }
+    for (const [id, entry] of this.approvalMap) {
+      if (entry.ws === ws) this.approvalMap.delete(id);
     }
   }
 
@@ -204,6 +253,14 @@ export class GatewayVoiceClient {
     }
     if (evt.event === "agent") {
       this.handleAgentEvent(evt.payload as AgentEventPayload | undefined);
+      return;
+    }
+    if (evt.event === "exec.approval.requested") {
+      this.handleApprovalRequested(evt.payload as ExecApprovalRequested | undefined);
+      return;
+    }
+    if (evt.event === "exec.approval.resolved") {
+      this.handleApprovalResolved(evt.payload as ExecApprovalResolved | undefined);
     }
   }
 
@@ -271,6 +328,59 @@ export class GatewayVoiceClient {
       ws: ctx.ws,
       voiceSessionId: ctx.voiceSessionId,
       runId,
+      action,
+    });
+  }
+
+  private handleApprovalRequested(payload?: ExecApprovalRequested) {
+    const id = payload?.id ? String(payload.id) : "";
+    if (!id) return;
+    const request = payload?.request ?? {};
+    const sessionKey = request.sessionKey ? String(request.sessionKey) : this.opts.sessionKey;
+    const ctx = this.sessionMap.get(sessionKey);
+    if (!ctx) return;
+    const command = typeof request.command === "string" ? request.command : "exec";
+    const ask = typeof request.ask === "string" ? request.ask.trim() : "";
+    const detail = ask ? `${ask}\n${command}` : command;
+    const action: ActionEvent = {
+      id,
+      type: "approval",
+      title: ask ? `Approval: ${ask}` : `Approval: ${command.slice(0, 48)}`,
+      detail,
+      status: "planned",
+      risk_level: "high",
+      approval_required: true,
+    };
+    this.approvalMap.set(id, ctx);
+    this.opts.onAction({
+      ws: ctx.ws,
+      voiceSessionId: ctx.voiceSessionId,
+      runId: id,
+      action,
+    });
+  }
+
+  private handleApprovalResolved(payload?: ExecApprovalResolved) {
+    const id = payload?.id ? String(payload.id) : "";
+    if (!id) return;
+    const decision = typeof payload?.decision === "string" ? payload.decision : "";
+    const status = decision === "deny" ? "rejected" : "approved";
+    const action: ActionEvent = {
+      id,
+      type: "approval",
+      title: "Approval decision",
+      detail: decision,
+      status,
+      risk_level: "high",
+      approval_required: false,
+    };
+    const ctx = this.approvalMap.get(id) ?? this.sessionMap.get(this.opts.sessionKey);
+    if (!ctx) return;
+    this.approvalMap.delete(id);
+    this.opts.onAction({
+      ws: ctx.ws,
+      voiceSessionId: ctx.voiceSessionId,
+      runId: id,
       action,
     });
   }

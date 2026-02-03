@@ -4,8 +4,9 @@
 export type SessionId = string;
 
 export type ClientMessage =
-  | { audio: AudioChunk; control?: undefined }
-  | { control: Control; audio?: undefined };
+  | { audio: AudioChunk; control?: undefined; approval?: undefined }
+  | { control: Control; audio?: undefined; approval?: undefined }
+  | { approval: ApprovalDecision; audio?: undefined; control?: undefined };
 
 export interface AudioChunk {
   data: Uint8Array; // PCM16LE or Opus
@@ -18,6 +19,11 @@ export interface Control {
   session_id?: string;
   push_to_talk?: boolean;
   stop?: boolean;
+}
+
+export interface ApprovalDecision {
+  id: string;
+  decision: "allow-once" | "allow-always" | "deny";
 }
 
 export interface ServerMessage {
