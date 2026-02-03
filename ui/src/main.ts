@@ -1,7 +1,8 @@
 import "./styles.css";
 import "./ui/app.ts";
-import { startVoiceWsDemo } from "./ui/controllers/voice-ws-demo";
+import { startVoiceWidget } from "./ui/controllers/voice-widget";
 
-if (import.meta.env.VITE_ENABLE_VOICE_DEMO === "true") {
-  startVoiceWsDemo();
+const enableVoiceWidget = import.meta.env.VITE_ENABLE_VOICE_WIDGET !== "false";
+if (enableVoiceWidget) {
+  startVoiceWidget();
 }
