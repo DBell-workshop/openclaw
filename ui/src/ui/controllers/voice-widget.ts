@@ -297,13 +297,20 @@ function createWidget(): Overlay & { onStart?: () => void; onStop?: () => void; 
       root.style.setProperty("--voice-level", clamped.toString());
     },
     pushAction: (a: any) => {
-      actions.unshift({
-        id: a.id || String(Date.now()),
+      const id = a.id || String(Date.now());
+      const next = {
+        id,
         title: a.title || a.type || "action",
         status: a.status || "planned",
         risk: a.risk_level,
         approval: !!a.approval_required,
-      });
+      };
+      const existing = actions.find((item) => item.id === id);
+      if (existing) {
+        Object.assign(existing, next);
+      } else {
+        actions.unshift(next);
+      }
       renderActions(actions, actionList);
     },
     teardown: () => root.remove(),

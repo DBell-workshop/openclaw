@@ -11,6 +11,7 @@ import { speak, synthesizeToPcmWave } from "./tts-macos";
 import { OpusDecoder } from "@discordjs/opus";
 import { streamEdgeTts } from "./tts-edge";
 import { spawn, execFile } from "child_process";
+import { GatewayVoiceClient } from "./gateway-bridge";
 
 type ServerState = {
   startMs: number;
@@ -20,6 +21,7 @@ type ServerState = {
 const PORT = Number(process.env.MYCAT_VOICE_PORT ?? 8799);
 const TMP_ROOT = process.env.MYCAT_TMP ?? path.join(os.tmpdir(), "mycat-voice");
 const ECHO_LLM = process.env.MYCAT_ECHO_LLM === "1";
+const USE_GATEWAY = process.env.MYCAT_USE_GATEWAY !== "0" && !ECHO_LLM;
 const TTS_ENABLED = process.env.MYCAT_TTS === "1";
 const TTS_STREAM = process.env.MYCAT_TTS_STREAM === "1";
 const TTS_CHUNK_MS = Number(process.env.MYCAT_TTS_CHUNK_MS ?? 40); // 40ms chunks by default
@@ -29,6 +31,13 @@ const PYTHON_BIN = process.env.MYCAT_PYTHON || "python3";
 const PY_TTS_WORKER = path.resolve(new URL(".", import.meta.url).pathname, "../python/tts_worker.py");
 const AUTO_PIP = process.env.MYCAT_TTS_PIP_AUTO === "1";
 const ACTION_DEMO = process.env.MYCAT_ACTION_DEMO === "1";
+const GATEWAY_URL = process.env.MYCAT_GATEWAY_URL || "ws://127.0.0.1:18789";
+const GATEWAY_TOKEN = process.env.MYCAT_GATEWAY_TOKEN || process.env.OPENCLAW_GATEWAY_TOKEN;
+const GATEWAY_PASSWORD = process.env.MYCAT_GATEWAY_PASSWORD || process.env.OPENCLAW_GATEWAY_PASSWORD;
+const GATEWAY_SESSION = process.env.MYCAT_GATEWAY_SESSION || "voice";
+const GATEWAY_THINKING = process.env.MYCAT_GATEWAY_THINKING;
+const GATEWAY_TIMEOUT_MS = Number(process.env.MYCAT_GATEWAY_TIMEOUT_MS ?? 0) || undefined;
+let gatewayClient: GatewayVoiceClient | null = null;
 
 function buildHealth(): ServerMessage {
   return {
@@ -64,6 +73,48 @@ function parseClientMessage(data: unknown): ClientMessage | null {
 
 export async function startServer() {
   const state: ServerState = { startMs: Date.now(), buffers: {} };
+  gatewayClient = USE_GATEWAY
+    ? new GatewayVoiceClient({
+        url: GATEWAY_URL,
+        token: GATEWAY_TOKEN,
+        password: GATEWAY_PASSWORD,
+        sessionKey: GATEWAY_SESSION,
+        thinking: GATEWAY_THINKING,
+        timeoutMs: GATEWAY_TIMEOUT_MS,
+        onLlmUpdate: ({ ws, voiceSessionId, text, isFinal }) => {
+          if (!text && !isFinal) return;
+          ws.send(
+            JSON.stringify({
+              session_id: voiceSessionId,
+              llm: { partial_text: text, is_final: isFinal },
+            }),
+          );
+          if (isFinal && TTS_ENABLED && text) {
+            runTts(ws, voiceSessionId, text).catch((err) =>
+              ws.send(
+                JSON.stringify({
+                  session_id: voiceSessionId,
+                  health: { state: "error", message: `tts: ${err.message}` },
+                }),
+              ),
+            );
+          }
+        },
+        onAction: ({ ws, voiceSessionId, action }) => {
+          ws.send(JSON.stringify({ session_id: voiceSessionId, action }));
+        },
+        onError: ({ ws, voiceSessionId, message }) => {
+          if (!ws) return;
+          ws.send(
+            JSON.stringify({
+              session_id: voiceSessionId ?? "default",
+              health: { state: "error", message },
+            }),
+          );
+        },
+      })
+    : null;
+  gatewayClient?.start();
 
   const server = Bun.serve({
     port: PORT,
@@ -80,6 +131,9 @@ export async function startServer() {
     websocket: {
       open(ws) {
         ws.send(JSON.stringify(buildHealth()));
+      },
+      close(ws) {
+        gatewayClient?.dropSocket(ws);
       },
       message(ws, raw) {
         const msg = parseClientMessage(raw);
@@ -111,6 +165,9 @@ export async function startServer() {
 
   console.info(`[mycat] loopback WS listening on ws://localhost:${server.port}/voice`);
   console.info(`[mycat] uptime counter started at ${new Date(state.startMs).toISOString()}`);
+  if (USE_GATEWAY) {
+    console.info(`[mycat] gateway LLM enabled: ${GATEWAY_URL} (session=${GATEWAY_SESSION})`);
+  }
 }
 
 if (import.meta.main) {
@@ -172,6 +229,10 @@ async function handleAudio(ws: Bun.WebSocket, state: ServerState, audio: any) {
             ws.send(JSON.stringify({ session_id: session, health: { state: "error", message: `tts: ${err.message}` } })),
           );
         }
+      } else if (chunk.isFinal && USE_GATEWAY) {
+        const text = chunk.text.trim();
+        if (!text) return;
+        gatewayClient?.sendChat({ ws, voiceSessionId: session, text });
       }
     },
   ).catch((err) => {

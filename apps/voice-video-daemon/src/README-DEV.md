@@ -7,6 +7,12 @@
   - 生成产物：`src/gen/voice.ts`
   - 下载的 `protoc` 位于 `.tools/`，已在 .gitignore；需要时可手动删除。
 - ASR/TTS：`src/whisper.ts`（whisper.cpp CLI）；`src/tts-macos.ts`（macOS `say`）。TTS 开关：`MYCAT_TTS=1`；流式：`MYCAT_TTS_STREAM=1`；`MYCAT_TTS_ENGINE=mac|edge|styletts2|matcha`。
+- LLM：默认走 Gateway（`chat.send` + 事件流）。可配置：
+  - `MYCAT_GATEWAY_URL`（默认 `ws://127.0.0.1:18789`）
+  - `MYCAT_GATEWAY_TOKEN` / `MYCAT_GATEWAY_PASSWORD`（可选）
+  - `MYCAT_GATEWAY_SESSION`（默认 `voice`）
+  - `MYCAT_GATEWAY_THINKING` / `MYCAT_GATEWAY_TIMEOUT_MS`（可选）
+  - 调试回声：`MYCAT_ECHO_LLM=1`（绕过网关）
 - Python TTS（StyleTTS2/Matcha）：需 python3；自动检查/安装缺失包：`MYCAT_TTS_PIP_AUTO=1`，或手动 `python3 -m pip install styletts2 matcha-tts`。可指定 `MYCAT_PYTHON`、`MYCAT_TTS_MODEL`（huggingface repo/name）。
 - Action demo：`MYCAT_ACTION_DEMO=1` 会在 ASR 结束时推送模拟 action 事件（planned → running → done），用于前端时间线联调。
 
