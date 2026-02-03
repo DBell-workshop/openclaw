@@ -298,6 +298,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 WebChatManager.shared.show(sessionKey: sessionKey)
             }
         }
+
+        // Default floating voice widget (remembered by user defaults)
+        let showWidget = UserDefaults.standard.object(forKey: voiceWidgetVisibleKey) as? Bool ?? true
+        if showWidget {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                VoiceWidgetWebPanelController.shared.show()
+            }
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
