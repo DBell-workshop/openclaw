@@ -108,6 +108,51 @@
 .voice-widget__status .status[data-state="speaking"] { color: #e9d5ff; background: rgba(192, 132, 252, 0.18); }
 .voice-widget__status .status[data-state="error"] { color: #fecdd3; background: rgba(248, 113, 113, 0.2); }
 
+.voice-widget__log {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  background: rgba(255, 255, 255, 0.02);
+}
+.voice-widget__log .log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  margin-bottom: 6px;
+  opacity: 0.9;
+}
+.voice-widget__log .log-header .clear {
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 10px;
+  cursor: pointer;
+}
+.voice-widget__log .log-error {
+  display: none;
+  margin-bottom: 6px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: rgba(248, 113, 113, 0.18);
+  color: #fecdd3;
+  font-size: 10px;
+}
+.voice-widget__log .log-lines {
+  max-height: 90px;
+  overflow: hidden;
+}
+.voice-widget__log .log-line {
+  font-size: 10px;
+  line-height: 1.4;
+  opacity: 0.8;
+}
+.voice-widget__log .log-line.log-warn { color: #fde68a; }
+.voice-widget__log .log-line.log-error { color: #fecdd3; }
+
 .voice-widget__text {
   font-size: 12px;
   line-height: 1.5;

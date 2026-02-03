@@ -30,6 +30,8 @@ type Overlay = {
   setAsrStatus: (t: StatusKey) => void;
   setLlmStatus: (t: StatusKey) => void;
   setLevel: (level: number) => void;
+  addLog: (t: string, level?: "info" | "warn" | "error") => void;
+  setError: (t: string | null) => void;
   teardown: () => void;
   setUrl: (t: string) => void;
 };
@@ -41,6 +43,7 @@ export function startVoiceWidget(url: string = DEFAULT_URL) {
   ui.setLlm("—");
   ui.setAsrStatus("idle");
   ui.setLlmStatus("idle");
+  ui.addLog("widget initialized");
   let ws: WebSocket | null = null;
   const mic = new MicRecorder();
 
@@ -60,21 +63,25 @@ export function startVoiceWidget(url: string = DEFAULT_URL) {
     ui.setState("connecting");
     ui.setAsrStatus("connecting");
     ui.setLlmStatus("connecting");
+    ui.addLog("connecting to voice server");
     ws = new WebSocket(url);
     ws.onopen = () => {
       ui.setState("connected");
       ui.setAsrStatus("ready");
       ui.setLlmStatus("ready");
+      ui.addLog("connected");
     };
     ws.onclose = () => {
       ui.setState("idle");
       ui.setAsrStatus("idle");
       ui.setLlmStatus("idle");
+      ui.addLog("disconnected", "warn");
     };
     ws.onerror = () => {
       ui.setState("error");
       ui.setAsrStatus("error");
       ui.setLlmStatus("error");
+      ui.addLog("connection error", "error");
     };
     ws.onmessage = (ev) => {
       try {
@@ -93,8 +100,19 @@ export function startVoiceWidget(url: string = DEFAULT_URL) {
         if (msg.action) {
           ui.pushAction(msg.action);
         }
+        if (msg.health) {
+          const state = msg.health.state || "ready";
+          const message = msg.health.message ? `: ${msg.health.message}` : "";
+          ui.addLog(`health ${state}${message}`, state === "error" ? "error" : "info");
+          if (state === "error") {
+            ui.setError(msg.health.message || "voice server error");
+          } else if (state === "ready") {
+            ui.setError(null);
+          }
+        }
       } catch (err) {
         console.warn("[voice-widget] bad message", err);
+        ui.addLog("bad message", "warn");
       }
     };
   }
@@ -119,6 +137,7 @@ export function startVoiceWidget(url: string = DEFAULT_URL) {
           ui.setState("thinking");
           ui.setAsrStatus("transcribing");
           ui.setLlmStatus("queued");
+          ui.addLog("end of utterance");
         }
       },
       (level) => ui.setLevel(level),
@@ -126,6 +145,7 @@ export function startVoiceWidget(url: string = DEFAULT_URL) {
     ui.setState("listening");
     ui.setAsrStatus("listening");
     ui.setLlmStatus("idle");
+    ui.addLog("mic started");
   };
 
   ui.onStop = async () => {
@@ -134,11 +154,13 @@ export function startVoiceWidget(url: string = DEFAULT_URL) {
     ui.setLevel(0);
     ui.setAsrStatus("idle");
     ui.setLlmStatus("idle");
+    ui.addLog("mic stopped");
   };
 
   ui.onApproval = (id, decision) => {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
     ws.send(JSON.stringify({ approval: { id, decision } }));
+    ui.addLog(`approval sent (${decision})`);
   };
 
   return { stop: () => ui.teardown() };
@@ -168,6 +190,14 @@ function createWidget(): Overlay & {
       <span class="status asr" data-state="idle">ASR idle</span>
       <span class="status llm" data-state="idle">LLM idle</span>
     </div>
+    <div class="voice-widget__log">
+      <div class="log-header">
+        <span class="label">Logs</span>
+        <button class="clear">Clear</button>
+      </div>
+      <div class="log-error"></div>
+      <div class="log-lines"></div>
+    </div>
     <div class="voice-widget__text asr">ASR: --</div>
     <div class="voice-widget__text llm">LLM: --</div>
     <div class="voice-widget__actions-list"></div>
@@ -183,11 +213,17 @@ function createWidget(): Overlay & {
   const llmEl = root.querySelector(".llm") as HTMLDivElement;
   const asrStatusEl = root.querySelector(".status.asr") as HTMLSpanElement;
   const llmStatusEl = root.querySelector(".status.llm") as HTMLSpanElement;
+  const logLabelEl = root.querySelector(".log-header .label") as HTMLSpanElement;
+  const logClearBtn = root.querySelector(".log-header .clear") as HTMLButtonElement;
+  const logErrorEl = root.querySelector(".log-error") as HTMLDivElement;
+  const logLinesEl = root.querySelector(".log-lines") as HTMLDivElement;
   const langBtn = root.querySelector(".lang") as HTMLButtonElement;
   const actionList = root.querySelector(".voice-widget__actions-list") as HTMLDivElement;
   const actions: ActionItem[] = [];
   const startBtn = root.querySelector(".start") as HTMLButtonElement;
   const stopBtn = root.querySelector(".stop") as HTMLButtonElement;
+  const logs: Array<{ ts: number; text: string; level: "info" | "warn" | "error" }> = [];
+  let errorText: string | null = null;
   let asrValue = "—";
   let llmValue = "—";
   let asrStatus: StatusKey = "idle";
@@ -201,6 +237,8 @@ function createWidget(): Overlay & {
       approve: "Approve",
       reject: "Reject",
       needApproval: "need approval",
+      logs: "Logs",
+      clear: "Clear",
       asrPrefix: "ASR:",
       llmPrefix: "LLM:",
       idle: "idle",
@@ -227,6 +265,8 @@ function createWidget(): Overlay & {
       approve: "同意",
       reject: "拒绝",
       needApproval: "需要审批",
+      logs: "日志",
+      clear: "清空",
       asrPrefix: "ASR：",
       llmPrefix: "LLM：",
       idle: "空闲",
@@ -279,7 +319,22 @@ function createWidget(): Overlay & {
     asrStatusEl.textContent = `ASR ${strings[asrStatus] ?? asrStatus}`;
     llmStatusEl.textContent = `LLM ${strings[llmStatus] ?? llmStatus}`;
     langBtn.textContent = lang === "en" ? "EN" : "中文";
+    logLabelEl.textContent = strings.logs;
+    logClearBtn.textContent = strings.clear;
     renderActions(actions, actionList, strings);
+    renderLogs(strings);
+  }
+
+  function renderLogs(strings: Record<string, string>) {
+    logErrorEl.textContent = errorText ? `${strings.error}: ${errorText}` : "";
+    logErrorEl.style.display = errorText ? "block" : "none";
+    logLinesEl.innerHTML = logs
+      .slice(-6)
+      .map((entry) => {
+        const time = new Date(entry.ts).toLocaleTimeString();
+        return `<div class="log-line log-${entry.level}">[${time}] ${entry.text}</div>`;
+      })
+      .join("");
   }
 
   const controller = {
@@ -322,6 +377,14 @@ function createWidget(): Overlay & {
       const clamped = Math.max(0, Math.min(1, level));
       root.style.setProperty("--voice-level", clamped.toString());
     },
+    addLog: (t: string, level: "info" | "warn" | "error" = "info") => {
+      logs.push({ ts: Date.now(), text: t, level });
+      renderLogs(STRINGS[lang]);
+    },
+    setError: (t: string | null) => {
+      errorText = t;
+      renderLogs(STRINGS[lang]);
+    },
     pushAction: (a: any) => {
       const id = a.id || String(Date.now());
       const next = {
@@ -345,6 +408,11 @@ function createWidget(): Overlay & {
   startBtn.onclick = () => controller.onStart?.();
   stopBtn.onclick = () => controller.onStop?.();
   langBtn.onclick = () => setLang(lang === "en" ? "zh" : "en");
+  logClearBtn.onclick = () => {
+    logs.splice(0, logs.length);
+    errorText = null;
+    renderLogs(STRINGS[lang]);
+  };
   actionList.addEventListener("click", (event) => {
     const target = event.target as HTMLElement | null;
     const button = target?.closest("button[data-action]") as HTMLButtonElement | null;
