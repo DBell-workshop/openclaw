@@ -30,6 +30,7 @@ final class VoiceSessionCoordinator {
         attributed: NSAttributedString? = nil,
         forwardEnabled: Bool = false) -> UUID
     {
+        VoiceWidgetWebPanelController.shared.showAutoWakeIfEnabled()
         let token = UUID()
         self.logger.info("coordinator start token=\(token.uuidString) source=\(source.rawValue) len=\(text.count)")
         let attributedText = attributed ?? VoiceWakeOverlayController.shared.makeAttributed(from: text)
@@ -105,6 +106,7 @@ final class VoiceSessionCoordinator {
     {
         guard let session, session.token == token else { return }
         VoiceWakeOverlayController.shared.dismiss(token: token, reason: reason, outcome: outcome)
+        VoiceWidgetWebPanelController.shared.scheduleAutoHide()
         self.clearSession()
     }
 
@@ -129,6 +131,7 @@ final class VoiceSessionCoordinator {
         if let token, self.session?.token == token {
             self.clearSession()
         }
+        VoiceWidgetWebPanelController.shared.scheduleAutoHide()
         Task { await VoiceWakeRuntime.shared.refresh(state: AppStateStore.shared) }
     }
 }

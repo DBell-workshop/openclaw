@@ -10,6 +10,8 @@ final class VoiceWidgetWebPanelController {
     private var webView: WKWebView?
     private var moveObserver: NSObjectProtocol?
     private var resizeObserver: NSObjectProtocol?
+    private var autoWakeVisible = false
+    private var autoHideWorkItem: DispatchWorkItem?
 
     private let panelSize = NSSize(width: 340, height: 520)
 
@@ -17,7 +19,7 @@ final class VoiceWidgetWebPanelController {
         if self.isVisible {
             self.close()
         } else {
-            self.show()
+            self.show(pinned: true)
         }
     }
 
@@ -25,18 +27,41 @@ final class VoiceWidgetWebPanelController {
         self.panel?.isVisible ?? false
     }
 
-    func show() {
+    func show(pinned: Bool = true) {
         self.ensurePanel()
         self.restoreFrameIfNeeded()
         self.loadIfNeeded()
         self.panel?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
-        UserDefaults.standard.set(true, forKey: voiceWidgetVisibleKey)
+        if pinned {
+            UserDefaults.standard.set(true, forKey: voiceWidgetVisibleKey)
+            self.autoWakeVisible = false
+        } else {
+            self.autoWakeVisible = true
+        }
     }
 
     func close() {
         self.panel?.orderOut(nil)
         UserDefaults.standard.set(false, forKey: voiceWidgetVisibleKey)
+        self.autoWakeVisible = false
+    }
+
+    func showAutoWakeIfEnabled() {
+        let enabled = UserDefaults.standard.object(forKey: voiceWidgetAutoWakeKey) as? Bool ?? true
+        guard enabled else { return }
+        if self.isVisible { return }
+        self.autoHideWorkItem?.cancel()
+        self.show(pinned: false)
+    }
+
+    func scheduleAutoHide(delay: TimeInterval = 2.5) {
+        guard self.autoWakeVisible else { return }
+        guard !UserDefaults.standard.bool(forKey: voiceWidgetVisibleKey) else { return }
+        self.autoHideWorkItem?.cancel()
+        let item = DispatchWorkItem { [weak self] in self?.close() }
+        self.autoHideWorkItem = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: item)
     }
 
     private func ensurePanel() {

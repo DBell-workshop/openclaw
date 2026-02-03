@@ -300,10 +300,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         // Default floating voice widget (remembered by user defaults)
-        let showWidget = UserDefaults.standard.object(forKey: voiceWidgetVisibleKey) as? Bool ?? true
+        let showWidget = UserDefaults.standard.bool(forKey: voiceWidgetVisibleKey)
         if showWidget {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-                VoiceWidgetWebPanelController.shared.show()
+                VoiceWidgetWebPanelController.shared.show(pinned: true)
             }
         }
     }

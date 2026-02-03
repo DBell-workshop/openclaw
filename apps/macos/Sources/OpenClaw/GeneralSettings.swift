@@ -9,6 +9,7 @@ struct GeneralSettings: View {
     @Bindable var state: AppState
     @AppStorage(cameraEnabledKey) private var cameraEnabled: Bool = false
     @AppStorage(voiceWidgetUrlKey) private var voiceWidgetUrl: String = "http://localhost:5173"
+    @AppStorage(voiceWidgetAutoWakeKey) private var voiceWidgetAutoWake: Bool = true
     private let healthStore = HealthStore.shared
     private let gatewayManager = GatewayProcessManager.shared
     @State private var gatewayDiscovery = GatewayDiscoveryModel(
@@ -67,6 +68,10 @@ struct GeneralSettings: View {
                             .font(.footnote)
                             .foregroundStyle(.tertiary)
                     }
+                    SettingsToggleRow(
+                        title: "Auto-show Voice Widget on speech",
+                        subtitle: "Show the floating widget when you speak, then hide it after the session ends.",
+                        binding: self.$voiceWidgetAutoWake)
 
                     SettingsToggleRow(
                         title: "Enable Peekaboo Bridge",
