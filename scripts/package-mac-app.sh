@@ -216,6 +216,16 @@ else
   echo "WARN: model catalog missing at $MODEL_CATALOG_SRC (continuing)" >&2
 fi
 
+echo "📦 Copying voice daemon resources"
+VOICE_DAEMON_SRC="$ROOT_DIR/apps/voice-video-daemon"
+VOICE_DAEMON_DEST="$APP_ROOT/Contents/Resources/voice-daemon"
+rm -rf "$VOICE_DAEMON_DEST"
+mkdir -p "$VOICE_DAEMON_DEST"
+cp -R "$VOICE_DAEMON_SRC/src" "$VOICE_DAEMON_DEST/"
+cp -R "$VOICE_DAEMON_SRC/python" "$VOICE_DAEMON_DEST/"
+cp "$VOICE_DAEMON_SRC/package.json" "$VOICE_DAEMON_DEST/"
+cp "$VOICE_DAEMON_SRC/tsconfig.json" "$VOICE_DAEMON_DEST/"
+
 echo "📦 Copying OpenClawKit resources"
 OPENCLAWKIT_BUNDLE="$(build_path_for_arch "$PRIMARY_ARCH")/$BUILD_CONFIG/OpenClawKit_OpenClawKit.bundle"
 if [ -d "$OPENCLAWKIT_BUNDLE" ]; then
