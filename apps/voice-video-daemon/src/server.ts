@@ -28,6 +28,7 @@ const OPUS_DECODER = new OpusDecoder(16000, 1);
 const PYTHON_BIN = process.env.MYCAT_PYTHON || "python3";
 const PY_TTS_WORKER = path.resolve(new URL(".", import.meta.url).pathname, "../python/tts_worker.py");
 const AUTO_PIP = process.env.MYCAT_TTS_PIP_AUTO === "1";
+const ACTION_DEMO = process.env.MYCAT_ACTION_DEMO === "1";
 
 function buildHealth(): ServerMessage {
   return {
@@ -162,6 +163,9 @@ async function handleAudio(ws: Bun.WebSocket, state: ServerState, audio: any) {
       ws.send(JSON.stringify(payload));
       if (chunk.isFinal && ECHO_LLM) {
         const text = chunk.text.trim();
+        if (ACTION_DEMO && text) {
+          emitActionDemo(ws, session, text);
+        }
         ws.send(JSON.stringify({ session_id: session, llm: { partial_text: text, is_final: true } }));
         if (TTS_ENABLED && text) {
           runTts(ws, session, text).catch((err) =>
@@ -230,6 +234,29 @@ function streamPcmChunks(ws: Bun.WebSocket, session: string, pcm: Buffer, sample
       }),
     );
   }
+}
+
+function emitActionDemo(ws: Bun.WebSocket, session: string, text: string) {
+  const id = `demo-${Date.now()}`;
+  const risk =
+    /delete|remove|erase|drop|rm|trash|危险|删除|清空/i.test(text) ? "high" : /pay|send|purchase|转账|付款/i.test(text) ? "medium" : "low";
+  const approval_required = risk !== "low";
+
+  const base = {
+    session_id: session,
+    action: {
+      id,
+      type: "browser",
+      title: `Plan: ${text.slice(0, 24)}`,
+      detail: text,
+      risk_level: risk,
+      approval_required,
+    },
+  };
+
+  ws.send(JSON.stringify({ ...base, action: { ...base.action, status: "planned" } }));
+  setTimeout(() => ws.send(JSON.stringify({ ...base, action: { ...base.action, status: "running" } })), 400);
+  setTimeout(() => ws.send(JSON.stringify({ ...base, action: { ...base.action, status: "done" } })), 1000);
 }
 
 async function streamPythonTts(ws: Bun.WebSocket, session: string, text: string) {
