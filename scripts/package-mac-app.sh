@@ -37,6 +37,22 @@ if [[ "$AUTO_CHECKS" == "true" && ! "$APP_BUILD" =~ ^[0-9]+$ ]]; then
   exit 1
 fi
 
+ensure_xcode_toolchain() {
+  # Swift macros in dependencies require the full Xcode toolchain, not Command Line Tools.
+  if [[ -n "${DEVELOPER_DIR:-}" ]]; then
+    return
+  fi
+  local xcode_dev="/Applications/Xcode.app/Contents/Developer"
+  local active_dev
+  active_dev="$(xcode-select -p 2>/dev/null || true)"
+  if [[ -d "$xcode_dev" ]] && [[ -z "$active_dev" || "$active_dev" == "/Library/Developer/CommandLineTools" ]]; then
+    export DEVELOPER_DIR="$xcode_dev"
+    echo "🔧 Using Xcode toolchain: $DEVELOPER_DIR"
+  fi
+}
+
+ensure_xcode_toolchain
+
 build_path_for_arch() {
   echo "$BUILD_ROOT/$1"
 }

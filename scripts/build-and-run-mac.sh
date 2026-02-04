@@ -1,5 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
+
+if [[ -z "${DEVELOPER_DIR:-}" ]]; then
+  ACTIVE_DEV="$(xcode-select -p 2>/dev/null || true)"
+  XCODE_DEV="/Applications/Xcode.app/Contents/Developer"
+  if [[ -d "$XCODE_DEV" ]] && [[ -z "$ACTIVE_DEV" || "$ACTIVE_DEV" == "/Library/Developer/CommandLineTools" ]]; then
+    export DEVELOPER_DIR="$XCODE_DEV"
+    printf "🔧 Using Xcode toolchain: %s\n" "$DEVELOPER_DIR"
+  fi
+fi
+
 cd "$(dirname "$0")/../apps/macos"
 
 BUILD_PATH=".build-local"

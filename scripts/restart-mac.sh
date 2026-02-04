@@ -28,8 +28,23 @@ ATTACH_ONLY=1
 log()  { printf '%s\n' "$*"; }
 fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 
+ensure_xcode_toolchain() {
+  # Swift macro plugins are unavailable with Command Line Tools-only setups.
+  if [[ -n "${DEVELOPER_DIR:-}" ]]; then
+    return
+  fi
+  local xcode_dev="/Applications/Xcode.app/Contents/Developer"
+  local active_dev
+  active_dev="$(xcode-select -p 2>/dev/null || true)"
+  if [[ -d "$xcode_dev" ]] && [[ -z "$active_dev" || "$active_dev" == "/Library/Developer/CommandLineTools" ]]; then
+    export DEVELOPER_DIR="$xcode_dev"
+    log "==> Using Xcode toolchain: $DEVELOPER_DIR"
+  fi
+}
+
 # Ensure local node binaries (rolldown, pnpm) are discoverable for the steps below.
 export PATH="${ROOT_DIR}/node_modules/.bin:${PATH}"
+ensure_xcode_toolchain
 
 run_step() {
   local label="$1"; shift
