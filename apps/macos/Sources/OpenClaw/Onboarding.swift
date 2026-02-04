@@ -14,6 +14,7 @@ enum UIStrings {
 final class OnboardingController {
     static let shared = OnboardingController()
     private var window: NSWindow?
+    var isVisible: Bool { self.window != nil }
 
     func show() {
         if ProcessInfo.processInfo.isNixMode {
