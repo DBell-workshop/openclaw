@@ -5,7 +5,10 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_BUNDLE="${OPENCLAW_APP_BUNDLE:-}"
-APP_PROCESS_PATTERN="OpenClaw.app/Contents/MacOS/OpenClaw"
+INFO_PLIST="${ROOT_DIR}/apps/macos/Sources/OpenClaw/Resources/Info.plist"
+APP_NAME=$(/usr/libexec/PlistBuddy -c "Print CFBundleName" "$INFO_PLIST" 2>/dev/null || echo "OpenClaw")
+APP_EXEC=$(/usr/libexec/PlistBuddy -c "Print CFBundleExecutable" "$INFO_PLIST" 2>/dev/null || echo "OpenClaw")
+APP_PROCESS_PATTERN="${APP_NAME}.app/Contents/MacOS/${APP_EXEC}"
 DEBUG_PROCESS_PATTERN="${ROOT_DIR}/apps/macos/.build/debug/OpenClaw"
 LOCAL_PROCESS_PATTERN="${ROOT_DIR}/apps/macos/.build-local/debug/OpenClaw"
 RELEASE_PROCESS_PATTERN="${ROOT_DIR}/apps/macos/.build/release/OpenClaw"
@@ -132,12 +135,12 @@ kill_all_openclaw() {
     pkill -f "${DEBUG_PROCESS_PATTERN}" 2>/dev/null || true
     pkill -f "${LOCAL_PROCESS_PATTERN}" 2>/dev/null || true
     pkill -f "${RELEASE_PROCESS_PATTERN}" 2>/dev/null || true
-    pkill -x "OpenClaw" 2>/dev/null || true
+    pkill -x "${APP_EXEC}" 2>/dev/null || true
     if ! pgrep -f "${APP_PROCESS_PATTERN}" >/dev/null 2>&1 \
        && ! pgrep -f "${DEBUG_PROCESS_PATTERN}" >/dev/null 2>&1 \
        && ! pgrep -f "${LOCAL_PROCESS_PATTERN}" >/dev/null 2>&1 \
        && ! pgrep -f "${RELEASE_PROCESS_PATTERN}" >/dev/null 2>&1 \
-       && ! pgrep -x "OpenClaw" >/dev/null 2>&1; then
+       && ! pgrep -x "${APP_EXEC}" >/dev/null 2>&1; then
       return 0
     fi
     sleep 0.3
@@ -149,7 +152,7 @@ stop_launch_agent() {
 }
 
 # 1) Kill all running instances first.
-log "==> Killing existing OpenClaw instances"
+log "==> Killing existing ${APP_NAME} instances"
 kill_all_openclaw
 stop_launch_agent
 
@@ -191,8 +194,21 @@ choose_app_bundle() {
     return 0
   fi
 
+  if [[ -d "/Applications/${APP_NAME}.app" ]]; then
+    APP_BUNDLE="/Applications/${APP_NAME}.app"
+    return 0
+  fi
+
   if [[ -d "/Applications/OpenClaw.app" ]]; then
     APP_BUNDLE="/Applications/OpenClaw.app"
+    return 0
+  fi
+
+  if [[ -d "${ROOT_DIR}/dist/${APP_NAME}.app" ]]; then
+    APP_BUNDLE="${ROOT_DIR}/dist/${APP_NAME}.app"
+    if [[ ! -d "${APP_BUNDLE}/Contents/Frameworks/Sparkle.framework" ]]; then
+      fail "dist/${APP_NAME}.app missing Sparkle after packaging"
+    fi
     return 0
   fi
 
@@ -204,7 +220,7 @@ choose_app_bundle() {
     return 0
   fi
 
-  fail "App bundle not found. Set OPENCLAW_APP_BUNDLE to your installed OpenClaw.app"
+  fail "App bundle not found. Set OPENCLAW_APP_BUNDLE to your installed ${APP_NAME}.app"
 }
 
 choose_app_bundle
@@ -258,8 +274,8 @@ run_step "launch app" env -i \
 
 # 5) Verify the app is alive.
 sleep 1.5
-if pgrep -f "${APP_PROCESS_PATTERN}" >/dev/null 2>&1; then
-  log "OK: OpenClaw is running."
+if pgrep -f "${APP_PROCESS_PATTERN}" >/dev/null 2>&1 || pgrep -x "${APP_EXEC}" >/dev/null 2>&1; then
+  log "OK: ${APP_NAME} is running."
 else
   fail "App exited immediately. Check ${LOG_PATH} or Console.app (User Reports)."
 fi

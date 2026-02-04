@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Build and bundle OpenClaw into a minimal .app we can open.
-# Outputs to dist/OpenClaw.app
+# Build and bundle the macOS app into a minimal .app we can open.
+# Output app bundle name follows CFBundleName in Info.plist.
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-APP_ROOT="$ROOT_DIR/dist/OpenClaw.app"
+INFO_PLIST_SRC="$ROOT_DIR/apps/macos/Sources/OpenClaw/Resources/Info.plist"
+APP_NAME=$(/usr/libexec/PlistBuddy -c "Print CFBundleName" "$INFO_PLIST_SRC" 2>/dev/null || echo "OpenClaw")
+APP_EXEC=$(/usr/libexec/PlistBuddy -c "Print CFBundleExecutable" "$INFO_PLIST_SRC" 2>/dev/null || echo "OpenClaw")
+APP_ROOT="$ROOT_DIR/dist/${APP_NAME}.app"
 BUILD_ROOT="$ROOT_DIR/apps/macos/.build"
 PRODUCT="OpenClaw"
 BUNDLE_ID="${BUNDLE_ID:-ai.openclaw.mac.debug}"
@@ -140,7 +143,6 @@ mkdir -p "$APP_ROOT/Contents/Resources"
 mkdir -p "$APP_ROOT/Contents/Frameworks"
 
 echo "📄 Copying Info.plist template"
-INFO_PLIST_SRC="$ROOT_DIR/apps/macos/Sources/OpenClaw/Resources/Info.plist"
 if [ ! -f "$INFO_PLIST_SRC" ]; then
   echo "ERROR: Info.plist template missing at $INFO_PLIST_SRC" >&2
   exit 1
@@ -162,17 +164,17 @@ else
 fi
 
 echo "🚚 Copying binary"
-cp "$BIN_PRIMARY" "$APP_ROOT/Contents/MacOS/OpenClaw"
+cp "$BIN_PRIMARY" "$APP_ROOT/Contents/MacOS/${APP_EXEC}"
 if [[ "${#BUILD_ARCHS[@]}" -gt 1 ]]; then
   BIN_INPUTS=()
   for arch in "${BUILD_ARCHS[@]}"; do
     BIN_INPUTS+=("$(bin_for_arch "$arch")")
   done
-  /usr/bin/lipo -create "${BIN_INPUTS[@]}" -output "$APP_ROOT/Contents/MacOS/OpenClaw"
+  /usr/bin/lipo -create "${BIN_INPUTS[@]}" -output "$APP_ROOT/Contents/MacOS/${APP_EXEC}"
 fi
-chmod +x "$APP_ROOT/Contents/MacOS/OpenClaw"
+chmod +x "$APP_ROOT/Contents/MacOS/${APP_EXEC}"
 # SwiftPM outputs ad-hoc signed binaries; strip the signature before install_name_tool to avoid warnings.
-/usr/bin/codesign --remove-signature "$APP_ROOT/Contents/MacOS/OpenClaw" 2>/dev/null || true
+/usr/bin/codesign --remove-signature "$APP_ROOT/Contents/MacOS/${APP_EXEC}" 2>/dev/null || true
 
 SPARKLE_FRAMEWORK_PRIMARY="$(sparkle_framework_for_arch "$PRIMARY_ARCH")"
 if [ -d "$SPARKLE_FRAMEWORK_PRIMARY" ]; then
@@ -262,8 +264,8 @@ else
   fi
 fi
 
-echo "⏹  Stopping any running OpenClaw"
-killall -q OpenClaw 2>/dev/null || true
+echo "⏹  Stopping any running ${APP_EXEC}"
+killall -q "$APP_EXEC" 2>/dev/null || true
 
 echo "🔏 Signing bundle (auto-selects signing identity if SIGN_IDENTITY is unset)"
 "$ROOT_DIR/scripts/codesign-mac-app.sh" "$APP_ROOT"
