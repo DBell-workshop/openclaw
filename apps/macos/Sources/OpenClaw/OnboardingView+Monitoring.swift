@@ -48,6 +48,7 @@ extension OnboardingView {
         self.updatePermissionMonitoring(for: pageIndex)
         self.updateDiscoveryMonitoring(for: pageIndex)
         self.updateAuthMonitoring(for: pageIndex)
+        self.updateVoiceMonitoring(for: pageIndex)
         self.maybeKickoffOnboardingChat(for: pageIndex)
     }
 
@@ -88,6 +89,33 @@ extension OnboardingView {
         self.monitoringAuth = false
         self.authMonitorTask?.cancel()
         self.authMonitorTask = nil
+    }
+
+    func updateVoiceMonitoring(for pageIndex: Int) {
+        let shouldMonitor = pageIndex == self.voicePageIndex
+        if shouldMonitor, !self.monitoringVoice {
+            self.monitoringVoice = true
+            Task { @MainActor in
+                self.refreshVoicePermissions()
+                self.voiceDaemon.startIfNeeded()
+            }
+        } else if !shouldMonitor, self.monitoringVoice {
+            self.monitoringVoice = false
+        }
+    }
+
+    @MainActor
+    func refreshVoicePermissions() {
+        self.voicePermissionsGranted = PermissionManager.voiceWakePermissionsGranted()
+    }
+
+    @MainActor
+    func requestVoicePermissions() async {
+        guard !self.requestingVoicePermissions else { return }
+        self.requestingVoicePermissions = true
+        defer { self.requestingVoicePermissions = false }
+        let granted = await PermissionManager.ensureVoiceWakePermissions(interactive: true)
+        self.voicePermissionsGranted = granted
     }
 
     func installCLI() async {
@@ -155,7 +183,7 @@ extension OnboardingView {
         defer { self.anthropicAuthVerifying = false }
 
         guard let refresh = OpenClawOAuthStore.loadAnthropicOAuthRefreshToken(), !refresh.isEmpty else {
-            self.anthropicAuthStatus = "OAuth verification failed: missing refresh token."
+            self.anthropicAuthStatus = self.t(.oauthVerifyFailedMissingRefresh)
             self.anthropicAuthVerificationFailed = true
             return
         }
@@ -167,12 +195,12 @@ extension OnboardingView {
             self.anthropicAuthVerified = true
             self.anthropicAuthVerifiedAt = Date()
             self.anthropicAuthVerificationFailed = false
-            self.anthropicAuthStatus = "OAuth detected and verified."
+            self.anthropicAuthStatus = self.t(.oauthVerified)
         } catch {
             self.anthropicAuthVerified = false
             self.anthropicAuthVerifiedAt = nil
             self.anthropicAuthVerificationFailed = true
-            self.anthropicAuthStatus = "OAuth verification failed: \(error.localizedDescription)"
+            self.anthropicAuthStatus = self.tf(.oauthVerifyFailed, error.localizedDescription)
         }
     }
 }

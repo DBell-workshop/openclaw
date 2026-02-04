@@ -7,7 +7,7 @@ import Observation
 import SwiftUI
 
 enum UIStrings {
-    static let welcomeTitle = "Welcome to OpenClaw"
+    static var welcomeTitle: String { OnboardingCopy.text(.welcomeTitle) }
 }
 
 @MainActor
@@ -94,8 +94,15 @@ struct OnboardingView: View {
     @State var onboardingSkillsModel = SkillsSettingsModel()
     @State var onboardingWizard = OnboardingWizardModel()
     @State var didLoadOnboardingSkills = false
+    @State var voicePermissionsGranted = false
+    @State var requestingVoicePermissions = false
+    @State var monitoringVoice = false
     @State var localGatewayProbe: LocalGatewayProbe?
+    @AppStorage(onboardingLanguageKey) var onboardingLanguageRaw: String = ""
+    @AppStorage(voiceWidgetLangKey) var voiceWidgetLang: String = "en"
+    @AppStorage(voiceWidgetAutoWakeKey) var voiceWidgetAutoWake: Bool = true
     @Bindable var state: AppState
+    @Bindable var voiceDaemon: VoiceDaemonManager
     var permissionMonitor: PermissionMonitor
 
     static let windowWidth: CGFloat = 630
@@ -106,6 +113,7 @@ struct OnboardingView: View {
     let connectionPageIndex = 1
     let anthropicAuthPageIndex = 2
     let wizardPageIndex = 3
+    let voicePageIndex = 7
     let onboardingChatPageIndex = 8
 
     static let clipboardPoll: AnyPublisher<Date, Never> = {
@@ -126,11 +134,11 @@ struct OnboardingView: View {
         case .remote:
             // Remote setup doesn't need local gateway/CLI/workspace setup pages,
             // and WhatsApp/Telegram setup is optional.
-            showOnboardingChat ? [0, 1, 5, 8, 9] : [0, 1, 5, 9]
+            showOnboardingChat ? [0, 1, 5, 7, 8, 9] : [0, 1, 5, 7, 9]
         case .unconfigured:
-            showOnboardingChat ? [0, 1, 8, 9] : [0, 1, 9]
+            showOnboardingChat ? [0, 1, 7, 8, 9] : [0, 1, 7, 9]
         case .local:
-            showOnboardingChat ? [0, 1, 3, 5, 8, 9] : [0, 1, 3, 5, 9]
+            showOnboardingChat ? [0, 1, 3, 5, 7, 8, 9] : [0, 1, 3, 5, 7, 9]
         }
     }
 
@@ -147,7 +155,9 @@ struct OnboardingView: View {
         self.activePageIndex(for: self.currentPage)
     }
 
-    var buttonTitle: String { self.currentPage == self.pageCount - 1 ? "Finish" : "Next" }
+    var buttonTitle: String {
+        self.currentPage == self.pageCount - 1 ? self.t(.finish) : self.t(.next)
+    }
     var wizardPageOrderIndex: Int? { self.pageOrder.firstIndex(of: self.wizardPageIndex) }
     var isWizardBlocking: Bool {
         self.activePageIndex == self.wizardPageIndex && !self.onboardingWizard.isComplete
@@ -171,10 +181,12 @@ struct OnboardingView: View {
         permissionMonitor: PermissionMonitor = .shared,
         discoveryModel: GatewayDiscoveryModel = GatewayDiscoveryModel(
             localDisplayName: InstanceIdentity.displayName,
-            filterLocalGateways: false))
+            filterLocalGateways: false),
+        voiceDaemon: VoiceDaemonManager = .shared)
     {
         self.state = state
         self.permissionMonitor = permissionMonitor
+        self.voiceDaemon = voiceDaemon
         self._gatewayDiscovery = State(initialValue: discoveryModel)
         self._onboardingChatModel = State(
             initialValue: OpenClawChatViewModel(

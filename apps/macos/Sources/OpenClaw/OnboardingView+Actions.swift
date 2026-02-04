@@ -90,9 +90,9 @@ extension OnboardingView {
             self.anthropicAuthPKCE = pkce
             let url = AnthropicOAuth.buildAuthorizeURL(pkce: pkce)
             NSWorkspace.shared.open(url)
-            self.anthropicAuthStatus = "Browser opened. After approving, paste the `code#state` value here."
+            self.anthropicAuthStatus = self.t(.browserOpenedStatus)
         } catch {
-            self.anthropicAuthStatus = "Failed to start OAuth: \(error.localizedDescription)"
+            self.anthropicAuthStatus = self.tf(.oauthStartFailed, error.localizedDescription)
         }
     }
 
@@ -104,7 +104,7 @@ extension OnboardingView {
         defer { self.anthropicAuthBusy = false }
 
         guard let parsed = AnthropicOAuthCodeState.parse(from: self.anthropicAuthCode) else {
-            self.anthropicAuthStatus = "OAuth failed: missing or invalid code/state."
+            self.anthropicAuthStatus = self.t(.oauthFailedInvalidCode)
             return
         }
 
@@ -115,9 +115,9 @@ extension OnboardingView {
                 verifier: pkce.verifier)
             try OpenClawOAuthStore.saveAnthropicOAuth(creds)
             self.refreshAnthropicOAuthStatus()
-            self.anthropicAuthStatus = "Connected. OpenClaw can now use Claude."
+            self.anthropicAuthStatus = self.t(.oauthConnectedStatus)
         } catch {
-            self.anthropicAuthStatus = "OAuth failed: \(error.localizedDescription)"
+            self.anthropicAuthStatus = self.tf(.oauthFailedStatus, error.localizedDescription)
         }
     }
 
@@ -139,7 +139,7 @@ extension OnboardingView {
         let next = "\(parsed.code)#\(parsed.state)"
         if self.anthropicAuthCode != next {
             self.anthropicAuthCode = next
-            self.anthropicAuthStatus = "Detected `code#state` from clipboard."
+            self.anthropicAuthStatus = self.t(.oauthClipboardDetected)
         }
 
         guard self.anthropicAuthAutoConnectClipboard else { return }

@@ -4,6 +4,13 @@ import SwiftUI
 extension OnboardingView {
     var body: some View {
         VStack(spacing: 0) {
+            HStack {
+                Spacer()
+                self.languagePicker
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
+
             GlowingOpenClawIcon(size: 130, glowIntensity: 0.28)
                 .offset(y: 10)
                 .frame(height: 145)
@@ -31,6 +38,7 @@ extension OnboardingView {
         .background(Color(NSColor.windowBackgroundColor))
         .onAppear {
             self.currentPage = 0
+            self.ensureOnboardingLanguage()
             self.updateMonitoring(for: 0)
         }
         .onChange(of: self.currentPage) { _, newValue in
@@ -67,6 +75,15 @@ extension OnboardingView {
         }
     }
 
+    private var languagePicker: some View {
+        Picker(self.t(.languageLabel), selection: self.$onboardingLanguageRaw) {
+            ForEach(OnboardingLanguage.allCases, id: \.rawValue) { lang in
+                Text(lang.displayName).tag(lang.rawValue)
+            }
+        }
+        .pickerStyle(.menu)
+    }
+
     func activePageIndex(for pageCursor: Int) -> Int {
         guard !self.pageOrder.isEmpty else { return 0 }
         let clamped = min(max(0, pageCursor), self.pageOrder.count - 1)
@@ -90,7 +107,7 @@ extension OnboardingView {
         return HStack(spacing: 20) {
             ZStack(alignment: .leading) {
                 Button(action: {}, label: {
-                    Label("Back", systemImage: "chevron.left").labelStyle(.iconOnly)
+                    Label(self.t(.back), systemImage: "chevron.left").labelStyle(.iconOnly)
                 })
                 .buttonStyle(.plain)
                 .opacity(0)
@@ -98,7 +115,7 @@ extension OnboardingView {
 
                 if self.currentPage > 0 {
                     Button(action: self.handleBack, label: {
-                        Label("Back", systemImage: "chevron.left")
+                        Label(self.t(.back), systemImage: "chevron.left")
                             .labelStyle(.iconOnly)
                     })
                     .buttonStyle(.plain)

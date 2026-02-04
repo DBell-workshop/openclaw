@@ -6,9 +6,9 @@ extension OnboardingView {
     func wizardPage() -> some View {
         self.onboardingPage {
             VStack(spacing: 16) {
-                Text("Setup Wizard")
+                Text(self.t(.setupWizardTitle))
                     .font(.largeTitle.weight(.semibold))
-                Text("Follow the guided setup from the Gateway. This keeps onboarding in sync with the CLI.")
+                Text(self.t(.setupWizardSubtitle))
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -18,7 +18,8 @@ extension OnboardingView {
                     OnboardingWizardCardContent(
                         wizard: self.onboardingWizard,
                         mode: self.state.connectionMode,
-                        workspacePath: self.workspacePath)
+                        workspacePath: self.workspacePath,
+                        language: self.onboardingLanguage)
                 }
             }
             .task {
@@ -34,6 +35,7 @@ private struct OnboardingWizardCardContent: View {
     @Bindable var wizard: OnboardingWizardModel
     let mode: AppState.ConnectionMode
     let workspacePath: String
+    let language: OnboardingLanguage
 
     private enum CardState {
         case error(String)
@@ -54,13 +56,13 @@ private struct OnboardingWizardCardContent: View {
     var body: some View {
         switch self.state {
         case let .error(error):
-            Text("Wizard error")
+            Text(self.t(.wizardError))
                 .font(.headline)
             Text(error)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            Button("Retry") {
+            Button(self.t(.retry)) {
                 self.wizard.reset()
                 Task {
                     await self.wizard.startIfNeeded(
@@ -72,7 +74,7 @@ private struct OnboardingWizardCardContent: View {
         case .starting:
             HStack(spacing: 8) {
                 ProgressView()
-                Text("Starting wizard…")
+                Text(self.t(.startingWizard))
                     .foregroundStyle(.secondary)
             }
         case let .step(step):
@@ -84,11 +86,15 @@ private struct OnboardingWizardCardContent: View {
             }
             .id(step.id)
         case .complete:
-            Text("Wizard complete. Continue to the next step.")
+            Text(self.t(.wizardComplete))
                 .font(.headline)
         case .waiting:
-            Text("Waiting for wizard…")
+            Text(self.t(.waitingWizard))
                 .foregroundStyle(.secondary)
         }
+    }
+
+    private func t(_ key: OnboardingCopyKey) -> String {
+        OnboardingCopy.text(key, lang: self.language)
     }
 }

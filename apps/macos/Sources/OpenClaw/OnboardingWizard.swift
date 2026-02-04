@@ -279,12 +279,14 @@ struct OnboardingWizardStepView: View {
             case "action":
                 EmptyView()
             default:
-                Text("Unsupported step type")
+                Text(OnboardingCopy.text(.wizardUnsupportedStep))
                     .foregroundStyle(.secondary)
             }
 
             Button(action: self.submit) {
-                Text(wizardStepType(self.step) == "action" ? "Run" : "Continue")
+                Text(wizardStepType(self.step) == "action"
+                    ? OnboardingCopy.text(.wizardRun)
+                    : OnboardingCopy.text(.wizardContinue))
                     .frame(minWidth: 120)
             }
             .buttonStyle(.borderedProminent)

@@ -52,6 +52,7 @@ extension OnboardingView {
         _ = view.wizardPage()
         _ = view.permissionsPage()
         _ = view.cliPage()
+        _ = view.voiceAssistantPage()
         _ = view.workspacePage()
         _ = view.onboardingChatPage()
         _ = view.readyPage()
