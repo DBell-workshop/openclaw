@@ -74,11 +74,14 @@ final class OnboardingWizardModel {
 
         do {
             GatewayProcessManager.shared.setActive(true)
-            if await GatewayProcessManager.shared.waitForGatewayReady(timeout: 12) == false {
+            if await GatewayProcessManager.shared.waitForGatewayReady(timeout: 120) == false {
                 throw NSError(
                     domain: "Gateway",
                     code: 1,
-                    userInfo: [NSLocalizedDescriptionKey: "Gateway did not become ready. Check that it is running."])
+                    userInfo: [
+                        NSLocalizedDescriptionKey:
+                            "Gateway did not become ready. On first launch MyCatCat may still be auto-installing dependencies. Please retry."
+                    ])
             }
             var params: [String: AnyCodable] = ["mode": AnyCodable("local")]
             if let workspace, !workspace.isEmpty {

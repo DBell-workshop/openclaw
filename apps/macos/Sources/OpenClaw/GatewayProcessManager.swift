@@ -39,6 +39,7 @@ final class GatewayProcessManager {
     private(set) var existingGatewayDetails: String?
     private(set) var lastFailureReason: String?
     private var desiredActive = false
+    private var autoBootstrapAttemptedForCurrentActivation = false
     private var environmentRefreshTask: Task<Void, Never>?
     private var lastEnvironmentRefresh: Date?
     private var logRefreshTask: Task<Void, Never>?
@@ -58,9 +59,11 @@ final class GatewayProcessManager {
     }
 
     func setActive(_ active: Bool) {
+        let wasActive = self.desiredActive
         // Remote mode should never spawn a local gateway; treat as stopped.
         if CommandResolver.connectionModeIsRemote() {
             self.desiredActive = false
+            self.autoBootstrapAttemptedForCurrentActivation = false
             self.stop()
             self.status = .stopped
             self.appendLog("[gateway] remote mode active; skipping local gateway\n")
@@ -69,6 +72,13 @@ final class GatewayProcessManager {
         }
         self.logger.debug("gateway active requested active=\(active)")
         self.desiredActive = active
+        if active {
+            if !wasActive {
+                self.autoBootstrapAttemptedForCurrentActivation = false
+            }
+        } else {
+            self.autoBootstrapAttemptedForCurrentActivation = false
+        }
         self.refreshEnvironmentStatus()
         if active {
             self.startIfNeeded()
@@ -125,6 +135,7 @@ final class GatewayProcessManager {
 
     func stop() {
         self.desiredActive = false
+        self.autoBootstrapAttemptedForCurrentActivation = false
         self.existingGatewayDetails = nil
         self.lastFailureReason = nil
         self.status = .stopped
@@ -299,14 +310,22 @@ final class GatewayProcessManager {
 
     private func enableLaunchdGateway() async {
         self.existingGatewayDetails = nil
-        let resolution = await Task.detached(priority: .utility) {
+        var resolution = await Task.detached(priority: .utility) {
             GatewayEnvironment.resolveGatewayCommand()
         }.value
-        await MainActor.run { self.environmentStatus = resolution.status }
+        self.environmentStatus = resolution.status
+
+        if resolution.command == nil,
+           await self.maybeAutoBootstrapGatewayDependencies(for: resolution.status)
+        {
+            resolution = await Task.detached(priority: .utility) {
+                GatewayEnvironment.resolveGatewayCommand()
+            }.value
+            self.environmentStatus = resolution.status
+        }
+
         guard resolution.command != nil else {
-            await MainActor.run {
-                self.status = .failed(resolution.status.message)
-            }
+            self.status = .failed(resolution.status.message)
             self.logger.error("gateway command resolve failed: \(resolution.status.message)")
             return
         }
@@ -412,6 +431,35 @@ final class GatewayProcessManager {
         let text = String(data: data, encoding: .utf8) ?? ""
         if text.count <= limit { return text }
         return String(text.suffix(limit))
+    }
+
+    private func maybeAutoBootstrapGatewayDependencies(for status: GatewayEnvironmentStatus) async -> Bool {
+        guard !self.autoBootstrapAttemptedForCurrentActivation else { return false }
+        switch status.kind {
+        case .missingNode, .missingGateway, .incompatible:
+            break
+        case .checking, .ok, .error:
+            return false
+        }
+
+        self.autoBootstrapAttemptedForCurrentActivation = true
+        self.appendLog("[gateway] missing local runtime/CLI, auto-installing dependencies…\n")
+        self.logger.info("gateway auto-bootstrap start kind=\(String(describing: status.kind), privacy: .public)")
+
+        await CLIInstaller.install { message in
+            self.appendLog("[gateway][install] \(message)\n")
+        }
+
+        let installOkay = CLIInstaller.isInstalled()
+        if !installOkay {
+            self.lastFailureReason = "auto install failed"
+            self.logger.error("gateway auto-bootstrap failed: CLI still missing")
+            return false
+        }
+
+        self.appendLog("[gateway] dependency bootstrap finished, retrying gateway setup…\n")
+        self.logger.info("gateway auto-bootstrap done, retrying resolve")
+        return true
     }
 }
 
