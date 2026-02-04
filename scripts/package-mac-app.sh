@@ -220,6 +220,7 @@ fi
 
 echo "🖼  Copying app icon"
 cp "$ROOT_DIR/apps/macos/Sources/OpenClaw/Resources/OpenClaw.icns" "$APP_ROOT/Contents/Resources/OpenClaw.icns"
+cp "$ROOT_DIR/apps/macos/Sources/OpenClaw/Resources/MyCatCat.icns" "$APP_ROOT/Contents/Resources/MyCatCat.icns"
 
 echo "📦 Copying device model resources"
 rm -rf "$APP_ROOT/Contents/Resources/DeviceModels"

@@ -269,6 +269,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.terminate(nil)
             return
         }
+        self.resetOnboardingIfFreshInstallDetected()
         self.state = AppStateStore.shared
         AppActivationPolicy.apply(showDockIcon: self.state?.showDockIcon ?? false)
         if let state {
@@ -334,6 +335,39 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
             OnboardingController.shared.show()
         }
+    }
+
+    /// Reinstalling the app (copying a new .app bundle) changes this fingerprint.
+    /// When that happens we reset onboarding flags so users get the first-run guide again.
+    @MainActor
+    private func resetOnboardingIfFreshInstallDetected() {
+        let defaults = UserDefaults.standard
+        guard let currentFingerprint = self.currentInstallFingerprint() else { return }
+
+        let previous = defaults.string(forKey: onboardingInstallFingerprintKey)
+        if previous == nil {
+            defaults.set(currentFingerprint, forKey: onboardingInstallFingerprintKey)
+            return
+        }
+
+        guard previous != currentFingerprint else { return }
+        defaults.set(currentFingerprint, forKey: onboardingInstallFingerprintKey)
+        defaults.set(false, forKey: onboardingSeenKey)
+        defaults.set(0, forKey: onboardingVersionKey)
+        AppStateStore.shared.onboardingSeen = false
+    }
+
+    private func currentInstallFingerprint() -> String? {
+        let bundleURL = Bundle.main.bundleURL
+        guard let values = try? bundleURL.resourceValues(forKeys: [.creationDateKey, .contentModificationDateKey]) else {
+            return nil
+        }
+        guard let createdAt = values.creationDate?.timeIntervalSinceReferenceDate,
+              let modifiedAt = values.contentModificationDate?.timeIntervalSinceReferenceDate else
+        {
+            return nil
+        }
+        return "\(bundleURL.path)|\(Int(createdAt))|\(Int(modifiedAt))"
     }
 
     private func isDuplicateInstance() -> Bool {

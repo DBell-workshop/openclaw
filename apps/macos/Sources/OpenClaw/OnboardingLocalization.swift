@@ -173,6 +173,8 @@ enum OnboardingCopyKey: String {
     case startingWizard
     case wizardComplete
     case waitingWizard
+    case gatewayDepsInstallingTitle
+    case gatewayDepsInstallingSubtitle
     case wizardUnsupportedStep
     case wizardRun
     case wizardContinue
@@ -328,6 +330,8 @@ enum OnboardingCopy {
             .startingWizard: "Starting wizard…",
             .wizardComplete: "Wizard complete. Continue to the next step.",
             .waitingWizard: "Waiting for wizard…",
+            .gatewayDepsInstallingTitle: "Installing required components…",
+            .gatewayDepsInstallingSubtitle: "First launch may take up to 1-2 minutes. Please keep this window open.",
             .wizardUnsupportedStep: "Unsupported step type",
             .wizardRun: "Run",
             .wizardContinue: "Continue",
@@ -480,6 +484,8 @@ enum OnboardingCopy {
             .startingWizard: "正在启动向导…",
             .wizardComplete: "向导完成，请继续下一步。",
             .waitingWizard: "正在等待向导…",
+            .gatewayDepsInstallingTitle: "正在自动安装依赖…",
+            .gatewayDepsInstallingSubtitle: "首次启动可能需要 1-2 分钟，请保持此窗口开启。",
             .wizardUnsupportedStep: "不支持的步骤类型",
             .wizardRun: "运行",
             .wizardContinue: "继续",
@@ -632,6 +638,8 @@ enum OnboardingCopy {
             .startingWizard: "正在啟動精靈…",
             .wizardComplete: "精靈完成，請繼續下一步。",
             .waitingWizard: "正在等待精靈…",
+            .gatewayDepsInstallingTitle: "正在自動安裝依賴…",
+            .gatewayDepsInstallingSubtitle: "首次啟動可能需要 1-2 分鐘，請保持此視窗開啟。",
             .wizardUnsupportedStep: "不支援的步驟類型",
             .wizardRun: "執行",
             .wizardContinue: "繼續",
@@ -784,6 +792,8 @@ enum OnboardingCopy {
             .startingWizard: "ウィザードを開始中…",
             .wizardComplete: "ウィザード完了。次のステップへ進んでください。",
             .waitingWizard: "ウィザードを待機中…",
+            .gatewayDepsInstallingTitle: "必要コンポーネントを自動インストール中…",
+            .gatewayDepsInstallingSubtitle: "初回起動は 1〜2 分かかることがあります。ウィンドウを閉じずにお待ちください。",
             .wizardUnsupportedStep: "未対応のステップタイプ",
             .wizardRun: "実行",
             .wizardContinue: "続行",

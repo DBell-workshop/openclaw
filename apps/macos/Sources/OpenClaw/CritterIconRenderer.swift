@@ -26,18 +26,11 @@ enum CritterIconRenderer {
         let earCorner: CGFloat
         let earW: CGFloat
         let earH: CGFloat
-        let legW: CGFloat
-        let legH: CGFloat
-        let legSpacing: CGFloat
-        let legStartX: CGFloat
-        let legYBase: CGFloat
-        let legLift: CGFloat
-        let legHeightScale: CGFloat
         let eyeW: CGFloat
         let eyeY: CGFloat
         let eyeOffset: CGFloat
 
-        init(canvas: Canvas, legWiggle: CGFloat, earWiggle: CGFloat, earScale: CGFloat) {
+        init(canvas: Canvas, earWiggle: CGFloat, earScale: CGFloat) {
             let w = canvas.w
             let h = canvas.h
             let snapX = canvas.snapX
@@ -63,15 +56,6 @@ enum CritterIconRenderer {
                 width: earW,
                 height: earH)
 
-            let legW = snapX(w * 0.11)
-            let legH = snapY(h * 0.26)
-            let legSpacing = snapX(w * 0.085)
-            let legsWidth = snapX(4 * legW + 3 * legSpacing)
-            let legStartX = snapX((w - legsWidth) / 2)
-            let legLift = snapY(legH * 0.35 * legWiggle)
-            let legYBase = snapY(bodyY - legH + h * 0.05)
-            let legHeightScale = 1 - 0.12 * legWiggle
-
             let eyeW = snapX(bodyW * 0.2)
             let eyeY = snapY(bodyY + bodyH * 0.56)
             let eyeOffset = snapX(bodyW * 0.24)
@@ -83,13 +67,6 @@ enum CritterIconRenderer {
             self.earCorner = earCorner
             self.earW = earW
             self.earH = earH
-            self.legW = legW
-            self.legH = legH
-            self.legSpacing = legSpacing
-            self.legStartX = legStartX
-            self.legYBase = legYBase
-            self.legLift = legLift
-            self.legHeightScale = legHeightScale
             self.eyeW = eyeW
             self.eyeY = eyeY
             self.eyeOffset = eyeOffset
@@ -128,7 +105,7 @@ enum CritterIconRenderer {
         context.cgContext.setShouldAntialias(false)
 
         let canvas = self.makeCanvas(for: rep, context: context)
-        let geometry = Geometry(canvas: canvas, legWiggle: legWiggle, earWiggle: earWiggle, earScale: earScale)
+        let geometry = Geometry(canvas: canvas, earWiggle: earWiggle, earScale: earScale)
 
         self.drawBody(in: canvas, geometry: geometry)
         let face = FaceOptions(
@@ -203,21 +180,6 @@ enum CritterIconRenderer {
             cornerWidth: geometry.earCorner,
             cornerHeight: geometry.earCorner,
             transform: nil))
-
-        for i in 0..<4 {
-            let x = geometry.legStartX + CGFloat(i) * (geometry.legW + geometry.legSpacing)
-            let lift = i % 2 == 0 ? geometry.legLift : -geometry.legLift
-            let rect = CGRect(
-                x: x,
-                y: geometry.legYBase + lift,
-                width: geometry.legW,
-                height: geometry.legH * geometry.legHeightScale)
-            canvas.context.addPath(CGPath(
-                roundedRect: rect,
-                cornerWidth: geometry.legW * 0.34,
-                cornerHeight: geometry.legW * 0.34,
-                transform: nil))
-        }
         canvas.context.fillPath()
     }
 

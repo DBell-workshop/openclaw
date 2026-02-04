@@ -5,7 +5,9 @@ let gatewayLaunchdLabel = "ai.openclaw.gateway"
 let onboardingVersionKey = "openclaw.onboardingVersion"
 let onboardingSeenKey = "openclaw.onboardingSeen"
 let onboardingLanguageKey = "openclaw.onboardingLanguage"
-let currentOnboardingVersion = 8
+let onboardingInstallFingerprintKey = "openclaw.onboardingInstallFingerprint"
+// Bump to force one guided pass for existing users after MyCatCat rebrand/widget flow changes.
+let currentOnboardingVersion = 9
 let pauseDefaultsKey = "openclaw.pauseEnabled"
 let iconAnimationsEnabledKey = "openclaw.iconAnimationsEnabled"
 let swabbleEnabledKey = "openclaw.swabbleEnabled"

@@ -38,6 +38,7 @@ final class GatewayProcessManager {
     private(set) var environmentStatus: GatewayEnvironmentStatus = .checking
     private(set) var existingGatewayDetails: String?
     private(set) var lastFailureReason: String?
+    private(set) var dependencyBootstrapMessage: String?
     private var desiredActive = false
     private var autoBootstrapAttemptedForCurrentActivation = false
     private var environmentRefreshTask: Task<Void, Never>?
@@ -64,6 +65,7 @@ final class GatewayProcessManager {
         if CommandResolver.connectionModeIsRemote() {
             self.desiredActive = false
             self.autoBootstrapAttemptedForCurrentActivation = false
+            self.dependencyBootstrapMessage = nil
             self.stop()
             self.status = .stopped
             self.appendLog("[gateway] remote mode active; skipping local gateway\n")
@@ -75,9 +77,11 @@ final class GatewayProcessManager {
         if active {
             if !wasActive {
                 self.autoBootstrapAttemptedForCurrentActivation = false
+                self.dependencyBootstrapMessage = nil
             }
         } else {
             self.autoBootstrapAttemptedForCurrentActivation = false
+            self.dependencyBootstrapMessage = nil
         }
         self.refreshEnvironmentStatus()
         if active {
@@ -136,6 +140,7 @@ final class GatewayProcessManager {
     func stop() {
         self.desiredActive = false
         self.autoBootstrapAttemptedForCurrentActivation = false
+        self.dependencyBootstrapMessage = nil
         self.existingGatewayDetails = nil
         self.lastFailureReason = nil
         self.status = .stopped
@@ -323,6 +328,9 @@ final class GatewayProcessManager {
             }.value
             self.environmentStatus = resolution.status
         }
+        if resolution.command != nil {
+            self.dependencyBootstrapMessage = nil
+        }
 
         guard resolution.command != nil else {
             self.status = .failed(resolution.status.message)
@@ -443,20 +451,24 @@ final class GatewayProcessManager {
         }
 
         self.autoBootstrapAttemptedForCurrentActivation = true
+        self.dependencyBootstrapMessage = "Installing required components…"
         self.appendLog("[gateway] missing local runtime/CLI, auto-installing dependencies…\n")
-        self.logger.info("gateway auto-bootstrap start kind=\(String(describing: status.kind), privacy: .public)")
+        self.logger.info("gateway auto-bootstrap start kind=\(String(describing: status.kind))")
 
         await CLIInstaller.install { message in
+            self.dependencyBootstrapMessage = message
             self.appendLog("[gateway][install] \(message)\n")
         }
 
         let installOkay = CLIInstaller.isInstalled()
         if !installOkay {
             self.lastFailureReason = "auto install failed"
+            self.dependencyBootstrapMessage = "Dependency install failed."
             self.logger.error("gateway auto-bootstrap failed: CLI still missing")
             return false
         }
 
+        self.dependencyBootstrapMessage = nil
         self.appendLog("[gateway] dependency bootstrap finished, retrying gateway setup…\n")
         self.logger.info("gateway auto-bootstrap done, retrying resolve")
         return true

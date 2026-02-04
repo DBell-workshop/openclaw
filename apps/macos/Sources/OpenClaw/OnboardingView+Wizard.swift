@@ -4,7 +4,8 @@ import SwiftUI
 
 extension OnboardingView {
     func wizardPage() -> some View {
-        self.onboardingPage {
+        let gatewayManager = GatewayProcessManager.shared
+        return self.onboardingPage {
             VStack(spacing: 16) {
                 Text(self.t(.setupWizardTitle))
                     .font(.largeTitle.weight(.semibold))
@@ -13,6 +14,27 @@ extension OnboardingView {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 520)
+
+                if let installMessage = gatewayManager.dependencyBootstrapMessage {
+                    self.onboardingCard(spacing: 10, padding: 14) {
+                        HStack(alignment: .top, spacing: 10) {
+                            ProgressView()
+                                .controlSize(.small)
+                                .padding(.top, 2)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(self.t(.gatewayDepsInstallingTitle))
+                                    .font(.headline)
+                                Text(self.t(.gatewayDepsInstallingSubtitle))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Text(installMessage)
+                                    .font(.caption.monospaced())
+                                    .foregroundStyle(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                    }
+                }
 
                 self.onboardingCard(spacing: 14, padding: 16) {
                     OnboardingWizardCardContent(
