@@ -6,6 +6,13 @@ enum CLIInstaller {
         let message: String
     }
 
+    private struct InstallAttempt {
+        let version: String
+        let cleanupBeforeInstall: Bool
+    }
+
+    private static let installScriptURL = "https://openclaw.ai/install-cli.sh"
+    private static let installFallbackVersion = "latest"
     private static var inFlightInstall: Task<InstallResult, Never>?
 
     static func installedLocation() -> String? {
@@ -65,16 +72,34 @@ enum CLIInstaller {
     }
 
     private static func performInstall(version: String, prefix: String) async -> InstallResult {
-        var response = await self.runInstallScript(version: version, prefix: prefix)
-        if !response.success, self.shouldRetryInstall(response) {
-            _ = await ShellExecutor.runDetailed(
-                command: self.cleanupBrokenInstallCommand(prefix: prefix),
-                cwd: nil,
-                env: nil,
-                timeout: 60)
-            response = await self.runInstallScript(version: version, prefix: prefix)
+        let normalized = self.normalizeVersion(version)
+        let attempts = self.installAttempts(primaryVersion: normalized)
+
+        var lastResponse: ShellExecutor.ShellResult?
+        for attempt in attempts {
+            if attempt.cleanupBeforeInstall {
+                _ = await ShellExecutor.runDetailed(
+                    command: self.cleanupBrokenInstallCommand(prefix: prefix),
+                    cwd: nil,
+                    env: nil,
+                    timeout: 60)
+            }
+
+            let response = await self.runInstallScript(version: attempt.version, prefix: prefix)
+            if response.success {
+                return self.mapInstallResult(response)
+            }
+
+            lastResponse = response
+            if !self.shouldRetryInstall(response), attempt.version == self.installFallbackVersion {
+                break
+            }
         }
-        return self.mapInstallResult(response)
+
+        if let lastResponse {
+            return self.mapInstallResult(lastResponse)
+        }
+        return InstallResult(message: "Install failed: unknown error")
     }
 
     private static func runInstallScript(version: String, prefix: String) async -> ShellExecutor.ShellResult {
@@ -101,8 +126,7 @@ enum CLIInstaller {
     }
 
     private static func shouldRetryInstall(_ response: ShellExecutor.ShellResult) -> Bool {
-        let combined = "\(response.stdout)\n\(response.stderr)\n\(response.errorMessage ?? "")"
-            .lowercased()
+        let combined = self.combinedInstallOutput(response)
         if combined.contains("eexist"),
            combined.contains("/bin/openclaw")
         {
@@ -113,12 +137,23 @@ enum CLIInstaller {
         {
             return true
         }
+        if combined.contains("enotempty"),
+           combined.contains("node_modules/openclaw")
+        {
+            return true
+        }
+        if combined.contains("command sh -c node scripts/postinstall.js"),
+           combined.contains("enoent")
+        {
+            return true
+        }
         return false
     }
 
     private static func installScriptCommand(version: String, prefix: String) -> [String] {
         let escapedVersion = self.shellEscape(version)
         let escapedPrefix = self.shellEscape(prefix)
+        let escapedScriptURL = self.shellEscape(self.installScriptURL)
         let script = """
         prefix=\(escapedPrefix)
         mkdir -p "$prefix/bin" "$prefix/lib/node_modules"
@@ -126,7 +161,7 @@ enum CLIInstaller {
         if [ -d "$prefix/lib/node_modules/openclaw" ] && [ ! -f "$prefix/lib/node_modules/openclaw/package.json" ]; then
           rm -rf "$prefix/lib/node_modules/openclaw"
         fi
-        curl -fsSL https://openclaw.bot/install-cli.sh | \
+        curl -fsSL \(escapedScriptURL) | \
         bash -s -- --json --no-onboard --prefix "$prefix" --version \(escapedVersion)
         """
         return ["/bin/bash", "-lc", script]
@@ -138,11 +173,33 @@ enum CLIInstaller {
         prefix=\(escapedPrefix)
         mkdir -p "$prefix/bin" "$prefix/lib/node_modules"
         rm -f "$prefix/bin/openclaw"
-        if [ -d "$prefix/lib/node_modules/openclaw" ] && [ ! -f "$prefix/lib/node_modules/openclaw/package.json" ]; then
-          rm -rf "$prefix/lib/node_modules/openclaw"
-        fi
+        rm -rf "$prefix/lib/node_modules/openclaw"
         """
         return ["/bin/bash", "-lc", script]
+    }
+
+    private static func normalizeVersion(_ version: String) -> String {
+        let trimmed = version.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? self.installFallbackVersion : trimmed
+    }
+
+    private static func installAttempts(primaryVersion: String) -> [InstallAttempt] {
+        if primaryVersion == self.installFallbackVersion {
+            return [
+                InstallAttempt(version: primaryVersion, cleanupBeforeInstall: false),
+                InstallAttempt(version: primaryVersion, cleanupBeforeInstall: true),
+            ]
+        }
+        return [
+            InstallAttempt(version: primaryVersion, cleanupBeforeInstall: false),
+            InstallAttempt(version: primaryVersion, cleanupBeforeInstall: true),
+            InstallAttempt(version: self.installFallbackVersion, cleanupBeforeInstall: true),
+        ]
+    }
+
+    private static func combinedInstallOutput(_ response: ShellExecutor.ShellResult) -> String {
+        "\(response.stdout)\n\(response.stderr)\n\(response.errorMessage ?? "")"
+            .lowercased()
     }
 
     private static func parseInstallEvents(_ output: String) -> [InstallEvent] {

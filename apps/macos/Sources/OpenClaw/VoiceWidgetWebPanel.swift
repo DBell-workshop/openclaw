@@ -170,7 +170,9 @@ final class VoiceWidgetWebPanelController: NSObject {
             object: UserDefaults.standard,
             queue: .main
         ) { [weak self] _ in
-            self?.loadIfNeeded()
+            Task { @MainActor in
+                self?.loadIfNeeded()
+            }
         }
     }
 
@@ -180,15 +182,21 @@ final class VoiceWidgetWebPanelController: NSObject {
             forName: NSWindow.didMoveNotification,
             object: panel,
             queue: .main
-        ) { [weak self] _ in
-            self?.storeFrame(panel.frame)
+        ) { [weak self, weak panel] _ in
+            Task { @MainActor in
+                guard let panel else { return }
+                self?.storeFrame(panel.frame)
+            }
         }
         self.resizeObserver = center.addObserver(
             forName: NSWindow.didEndLiveResizeNotification,
             object: panel,
             queue: .main
-        ) { [weak self] _ in
-            self?.storeFrame(panel.frame)
+        ) { [weak self, weak panel] _ in
+            Task { @MainActor in
+                guard let panel else { return }
+                self?.storeFrame(panel.frame)
+            }
         }
     }
 

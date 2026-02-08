@@ -160,7 +160,8 @@ final class VoiceDaemonManager {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev"
         let needsCopy = !FileManager.default.fileExists(atPath: targetRoot.path)
             || !FileManager.default.fileExists(atPath: marker.path)
-            || (try? String(contentsOf: marker))?.trimmingCharacters(in: .whitespacesAndNewlines) != version
+            || (try? String(contentsOf: marker, encoding: .utf8))?
+            .trimmingCharacters(in: .whitespacesAndNewlines) != version
 
         if needsCopy {
             do {
