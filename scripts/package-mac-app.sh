@@ -129,10 +129,10 @@ merge_framework_machos() {
 echo "📦 Ensuring deps (pnpm install)"
 (cd "$ROOT_DIR" && pnpm install --no-frozen-lockfile --config.node-linker=hoisted)
 if [[ "${SKIP_TSC:-0}" != "1" ]]; then
-  echo "📦 Building JS (pnpm tsdown)"
-  (cd "$ROOT_DIR" && pnpm tsdown)
+  echo "📦 Building JS (pnpm build)"
+  (cd "$ROOT_DIR" && pnpm build)
 else
-  echo "📦 Skipping TS build (SKIP_TSC=1)"
+  echo "📦 Skipping JS build (SKIP_TSC=1)"
 fi
 
 if [[ "${SKIP_UI_BUILD:-0}" != "1" ]]; then

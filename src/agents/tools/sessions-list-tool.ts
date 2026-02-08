@@ -1,11 +1,9 @@
-import path from "node:path";
-
 import { Type } from "@sinclair/typebox";
-
+import path from "node:path";
+import type { AnyAgentTool } from "./common.js";
 import { loadConfig } from "../../config/config.js";
 import { callGateway } from "../../gateway/call.js";
 import { isSubagentSessionKey, resolveAgentIdFromSessionKey } from "../../routing/session-key.js";
-import type { AnyAgentTool } from "./common.js";
 import { jsonResult, readStringArrayParam } from "./common.js";
 import {
   createAgentToAgentPolicy,
@@ -79,7 +77,7 @@ export function createSessionsListTool(opts?: {
           : 0;
       const messageLimit = Math.min(messageLimitRaw, 20);
 
-      const list = await callGateway({
+      const list = await callGateway<{ sessions: Array<SessionListRow>; path: string }>({
         method: "sessions.list",
         params: {
           limit,
@@ -97,20 +95,32 @@ export function createSessionsListTool(opts?: {
       const rows: SessionListRow[] = [];
 
       for (const entry of sessions) {
-        if (!entry || typeof entry !== "object") continue;
+        if (!entry || typeof entry !== "object") {
+          continue;
+        }
         const key = typeof entry.key === "string" ? entry.key : "";
-        if (!key) continue;
+        if (!key) {
+          continue;
+        }
 
         const entryAgentId = resolveAgentIdFromSessionKey(key);
         const crossAgent = entryAgentId !== requesterAgentId;
-        if (crossAgent && !a2aPolicy.isAllowed(requesterAgentId, entryAgentId)) continue;
+        if (crossAgent && !a2aPolicy.isAllowed(requesterAgentId, entryAgentId)) {
+          continue;
+        }
 
-        if (key === "unknown") continue;
-        if (key === "global" && alias !== "global") continue;
+        if (key === "unknown") {
+          continue;
+        }
+        if (key === "global" && alias !== "global") {
+          continue;
+        }
 
         const gatewayKind = typeof entry.kind === "string" ? entry.kind : undefined;
         const kind = classifySessionKind({ key, gatewayKind, alias, mainKey });
-        if (allowedKinds && !allowedKinds.has(kind)) continue;
+        if (allowedKinds && !allowedKinds.has(kind)) {
+          continue;
+        }
 
         const displayKey = resolveDisplaySessionKey({
           key,
@@ -184,7 +194,7 @@ export function createSessionsListTool(opts?: {
             alias,
             mainKey,
           });
-          const history = await callGateway({
+          const history = await callGateway<{ messages: Array<unknown> }>({
             method: "chat.history",
             params: { sessionKey: resolvedKey, limit: messageLimit },
           });

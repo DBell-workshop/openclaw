@@ -1,6 +1,5 @@
 import type { AgentTool } from "@mariozechner/pi-agent-core";
 import { Type } from "@sinclair/typebox";
-
 import {
   deleteSession,
   drainSession,
@@ -44,7 +43,7 @@ const processSchema = Type.Object({
 
 export function createProcessTool(
   defaults?: ProcessToolDefaults,
-  // biome-ignore lint/suspicious/noExplicitAny: TypeBox schema type from pi-agent-core uses a different module instance.
+  // oxlint-disable-next-line typescript/no-explicit-any
 ): AgentTool<any> {
   if (defaults?.cleanupMs !== undefined) {
     setJobTtlMs(defaults.cleanupMs);
@@ -337,8 +336,11 @@ export function createProcessTool(
           }
           await new Promise<void>((resolve, reject) => {
             stdin.write(params.data ?? "", (err) => {
-              if (err) reject(err);
-              else resolve();
+              if (err) {
+                reject(err);
+              } else {
+                resolve();
+              }
             });
           });
           if (params.eof) {
@@ -414,8 +416,11 @@ export function createProcessTool(
           }
           await new Promise<void>((resolve, reject) => {
             stdin.write(data, (err) => {
-              if (err) reject(err);
-              else resolve();
+              if (err) {
+                reject(err);
+              } else {
+                resolve();
+              }
             });
           });
           return {
@@ -472,8 +477,11 @@ export function createProcessTool(
           }
           await new Promise<void>((resolve, reject) => {
             stdin.write("\r", (err) => {
-              if (err) reject(err);
-              else resolve();
+              if (err) {
+                reject(err);
+              } else {
+                resolve();
+              }
             });
           });
           return {
@@ -540,8 +548,11 @@ export function createProcessTool(
           }
           await new Promise<void>((resolve, reject) => {
             stdin.write(payload, (err) => {
-              if (err) reject(err);
-              else resolve();
+              if (err) {
+                reject(err);
+              } else {
+                resolve();
+              }
             });
           });
           return {

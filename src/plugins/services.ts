@@ -1,7 +1,7 @@
 import type { OpenClawConfig } from "../config/config.js";
+import type { PluginRegistry } from "./registry.js";
 import { STATE_DIR } from "../config/paths.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
-import type { PluginRegistry } from "./registry.js";
 
 const log = createSubsystemLogger("plugins");
 
@@ -58,7 +58,9 @@ export async function startPluginServices(params: {
   return {
     stop: async () => {
       for (const entry of running.toReversed()) {
-        if (!entry.stop) continue;
+        if (!entry.stop) {
+          continue;
+        }
         try {
           await entry.stop();
         } catch (err) {

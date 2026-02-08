@@ -1,3 +1,13 @@
+import crypto from "node:crypto";
+import {
+  browserAct,
+  browserArmDialog,
+  browserArmFileChooser,
+  browserConsoleMessages,
+  browserNavigate,
+  browserPdfSave,
+  browserScreenshotAction,
+} from "../../browser/client-actions.js";
 import {
   browserCloseTab,
   browserFocusTab,
@@ -9,25 +19,14 @@ import {
   browserStop,
   browserTabs,
 } from "../../browser/client.js";
-import {
-  browserAct,
-  browserArmDialog,
-  browserArmFileChooser,
-  browserConsoleMessages,
-  browserNavigate,
-  browserPdfSave,
-  browserScreenshotAction,
-} from "../../browser/client-actions.js";
-import crypto from "node:crypto";
-
 import { resolveBrowserConfig } from "../../browser/config.js";
 import { DEFAULT_AI_SNAPSHOT_MAX_CHARS } from "../../browser/constants.js";
 import { loadConfig } from "../../config/config.js";
 import { saveMediaBuffer } from "../../media/store.js";
-import { listNodes, resolveNodeIdFromList, type NodeListNode } from "./nodes-utils.js";
 import { BrowserToolSchema } from "./browser-tool.schema.js";
 import { type AnyAgentTool, imageResultFromFile, jsonResult, readStringParam } from "./common.js";
 import { callGatewayTool } from "./gateway.js";
+import { listNodes, resolveNodeIdFromList, type NodeListNode } from "./nodes-utils.js";
 
 type BrowserProxyFile = {
   path: string;
@@ -70,7 +69,9 @@ async function resolveBrowserNodeTarget(params: {
   if (params.sandboxBridgeUrl?.trim() && params.target !== "node" && !params.requestedNode) {
     return null;
   }
-  if (params.target && params.target !== "node") return null;
+  if (params.target && params.target !== "node") {
+    return null;
+  }
   if (mode === "manual" && params.target !== "node" && !params.requestedNode) {
     return null;
   }
@@ -101,7 +102,9 @@ async function resolveBrowserNodeTarget(params: {
     );
   }
 
-  if (mode === "manual") return null;
+  if (mode === "manual") {
+    return null;
+  }
 
   if (browserNodes.length === 1) {
     const node = browserNodes[0];
@@ -123,7 +126,7 @@ async function callBrowserProxy(params: {
     typeof params.timeoutMs === "number" && Number.isFinite(params.timeoutMs)
       ? Math.max(1, Math.floor(params.timeoutMs))
       : DEFAULT_BROWSER_PROXY_TIMEOUT_MS;
-  const payload = await callGatewayTool(
+  const payload = await callGatewayTool<{ payloadJSON?: string; payload?: string }>(
     "node.invoke",
     { timeoutMs: gatewayTimeoutMs },
     {
@@ -145,14 +148,16 @@ async function callBrowserProxy(params: {
     (typeof payload?.payloadJSON === "string" && payload.payloadJSON
       ? (JSON.parse(payload.payloadJSON) as BrowserProxyResult)
       : null);
-  if (!parsed || typeof parsed !== "object") {
+  if (!parsed || typeof parsed !== "object" || !("result" in parsed)) {
     throw new Error("browser proxy failed");
   }
   return parsed;
 }
 
 async function persistProxyFiles(files: BrowserProxyFile[] | undefined) {
-  if (!files || files.length === 0) return new Map<string, string>();
+  if (!files || files.length === 0) {
+    return new Map<string, string>();
+  }
   const mapping = new Map<string, string>();
   for (const file of files) {
     const buffer = Buffer.from(file.base64, "base64");
@@ -163,7 +168,9 @@ async function persistProxyFiles(files: BrowserProxyFile[] | undefined) {
 }
 
 function applyProxyPaths(result: unknown, mapping: Map<string, string>) {
-  if (!result || typeof result !== "object") return;
+  if (!result || typeof result !== "object") {
+    return;
+  }
   const obj = result as Record<string, unknown>;
   if (typeof obj.path === "string" && mapping.has(obj.path)) {
     obj.path = mapping.get(obj.path);
@@ -402,8 +409,11 @@ export function createBrowserTool(opts?: {
                 });
             return jsonResult(result);
           }
-          if (targetId) await browserCloseTab(baseUrl, targetId, { profile });
-          else await browserAct(baseUrl, { kind: "close" }, { profile });
+          if (targetId) {
+            await browserCloseTab(baseUrl, targetId, { profile });
+          } else {
+            await browserAct(baseUrl, { kind: "close" }, { profile });
+          }
           return jsonResult({ ok: true });
         }
         case "snapshot": {
@@ -592,7 +602,9 @@ export function createBrowserTool(opts?: {
         }
         case "upload": {
           const paths = Array.isArray(params.paths) ? params.paths.map((p) => String(p)) : [];
-          if (paths.length === 0) throw new Error("paths required");
+          if (paths.length === 0) {
+            throw new Error("paths required");
+          }
           const ref = readStringParam(params, "ref");
           const inputRef = readStringParam(params, "inputRef");
           const element = readStringParam(params, "element");

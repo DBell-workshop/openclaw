@@ -1,8 +1,7 @@
+import JSZip from "jszip";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { PassThrough } from "node:stream";
-
-import JSZip from "jszip";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const realOs = await vi.importActual<typeof import("node:os")>("node:os");
@@ -47,7 +46,9 @@ describe("media store redirects", () => {
       const res = new PassThrough();
       const req = {
         on: (event: string, handler: (...args: unknown[]) => void) => {
-          if (event === "error") res.on("error", handler);
+          if (event === "error") {
+            res.on("error", handler);
+          }
           return req;
         },
         end: () => undefined,
@@ -88,7 +89,9 @@ describe("media store redirects", () => {
       const res = new PassThrough();
       const req = {
         on: (event: string, handler: (...args: unknown[]) => void) => {
-          if (event === "error") res.on("error", handler);
+          if (event === "error") {
+            res.on("error", handler);
+          }
           return req;
         },
         end: () => undefined,

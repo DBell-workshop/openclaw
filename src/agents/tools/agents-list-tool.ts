@@ -1,5 +1,5 @@
 import { Type } from "@sinclair/typebox";
-
+import type { AnyAgentTool } from "./common.js";
 import { loadConfig } from "../../config/config.js";
 import {
   DEFAULT_AGENT_ID,
@@ -7,7 +7,6 @@ import {
   parseAgentSessionKey,
 } from "../../routing/session-key.js";
 import { resolveAgentConfig } from "../agent-scope.js";
-import type { AnyAgentTool } from "./common.js";
 import { jsonResult } from "./common.js";
 import { resolveInternalSessionKey, resolveMainSessionAlias } from "./sessions-helpers.js";
 
@@ -59,16 +58,22 @@ export function createAgentsListTool(opts?: {
       const configuredNameMap = new Map<string, string>();
       for (const entry of configuredAgents) {
         const name = entry?.name?.trim() ?? "";
-        if (!name) continue;
+        if (!name) {
+          continue;
+        }
         configuredNameMap.set(normalizeAgentId(entry.id), name);
       }
 
       const allowed = new Set<string>();
       allowed.add(requesterAgentId);
       if (allowAny) {
-        for (const id of configuredIds) allowed.add(id);
+        for (const id of configuredIds) {
+          allowed.add(id);
+        }
       } else {
-        for (const id of allowSet) allowed.add(id);
+        for (const id of allowSet) {
+          allowed.add(id);
+        }
       }
 
       const all = Array.from(allowed);

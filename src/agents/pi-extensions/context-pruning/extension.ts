@@ -1,12 +1,13 @@
 import type { ContextEvent, ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
-
 import { pruneContextMessages } from "./pruner.js";
 import { getContextPruningRuntime } from "./runtime.js";
 
 export default function contextPruningExtension(api: ExtensionAPI): void {
   api.on("context", (event: ContextEvent, ctx: ExtensionContext) => {
     const runtime = getContextPruningRuntime(ctx.sessionManager);
-    if (!runtime) return undefined;
+    if (!runtime) {
+      return undefined;
+    }
 
     if (runtime.settings.mode === "cache-ttl") {
       const ttlMs = runtime.settings.ttlMs;
@@ -27,7 +28,9 @@ export default function contextPruningExtension(api: ExtensionAPI): void {
       contextWindowTokensOverride: runtime.contextWindowTokens ?? undefined,
     });
 
-    if (next === event.messages) return undefined;
+    if (next === event.messages) {
+      return undefined;
+    }
 
     if (runtime.settings.mode === "cache-ttl") {
       runtime.lastCacheTouchAt = Date.now();

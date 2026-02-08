@@ -20,8 +20,6 @@ extension OnboardingView {
             self.permissionsPage()
         case 6:
             self.cliPage()
-        case 7:
-            self.voiceAssistantPage()
         case 8:
             self.onboardingChatPage()
         case 9:
@@ -34,9 +32,9 @@ extension OnboardingView {
     func welcomePage() -> some View {
         self.onboardingPage {
             VStack(spacing: 22) {
-                Text(self.t(.welcomeTitle))
+                Text("Welcome to OpenClaw")
                     .font(.largeTitle.weight(.semibold))
-                Text(self.t(.welcomeSubtitle))
+                Text("OpenClaw is a powerful personal AI assistant that can connect to WhatsApp or Telegram.")
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -53,9 +51,14 @@ extension OnboardingView {
                             .padding(.top, 1)
 
                         VStack(alignment: .leading, spacing: 6) {
-                            Text(self.t(.securityNoticeTitle))
+                            Text("Security notice")
                                 .font(.headline)
-                            Text(self.t(.securityNoticeBody))
+                            Text(
+                                "The connected AI agent (e.g. Claude) can trigger powerful actions on your Mac, " +
+                                    "including running commands, reading/writing files, and capturing screenshots — " +
+                                    "depending on the permissions you grant.\n\n" +
+                                    "Only enable OpenClaw if you understand the risks and trust the prompts and " +
+                                    "integrations you use.")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -70,9 +73,11 @@ extension OnboardingView {
 
     func connectionPage() -> some View {
         self.onboardingPage {
-            Text(self.t(.chooseGatewayTitle))
+            Text("Choose your Gateway")
                 .font(.largeTitle.weight(.semibold))
-            Text(self.t(.chooseGatewaySubtitle))
+            Text(
+                "OpenClaw uses a single Gateway that stays running. Pick this Mac, " +
+                    "connect to a discovered gateway nearby, or configure later.")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -84,16 +89,16 @@ extension OnboardingView {
                 VStack(alignment: .leading, spacing: 10) {
                     let localSubtitle: String = {
                         guard let probe = self.localGatewayProbe else {
-                            return self.t(.thisMacSubtitleDefault)
+                            return "Gateway starts automatically on this Mac."
                         }
                         let base = probe.expected
-                            ? self.t(.localGatewayDetected)
-                            : self.tf(.portInUse, probe.port)
+                            ? "Existing gateway detected"
+                            : "Port \(probe.port) already in use"
                         let command = probe.command.isEmpty ? "" : " (\(probe.command) pid \(probe.pid))"
-                        return "\(base)\(command). \(self.t(.willAttach))"
+                        return "\(base)\(command). Will attach."
                     }()
                     self.connectionChoiceButton(
-                        title: self.t(.thisMacTitle),
+                        title: "This Mac",
                         subtitle: localSubtitle,
                         selected: self.state.connectionMode == .local)
                     {
@@ -111,23 +116,23 @@ extension OnboardingView {
                             .foregroundStyle(.secondary)
                         if self.gatewayDiscovery.gateways.isEmpty {
                             ProgressView().controlSize(.small)
-                            Button(self.t(.refresh)) {
+                            Button("Refresh") {
                                 self.gatewayDiscovery.refreshWideAreaFallbackNow(timeoutSeconds: 5.0)
                             }
                             .buttonStyle(.link)
-                            .help(self.t(.refreshDiscoveryHelp))
+                            .help("Retry Tailscale discovery (DNS-SD).")
                         }
                         Spacer(minLength: 0)
                     }
 
                     if self.gatewayDiscovery.gateways.isEmpty {
-                        Text(self.t(.searchingGateways))
+                        Text("Searching for nearby gateways…")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .padding(.leading, 4)
                     } else {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text(self.t(.nearbyGateways))
+                            Text("Nearby gateways")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .padding(.leading, 4)
@@ -148,14 +153,14 @@ extension OnboardingView {
                     }
 
                     self.connectionChoiceButton(
-                        title: self.t(.configureLater),
-                        subtitle: self.t(.configureLaterSubtitle),
+                        title: "Configure later",
+                        subtitle: "Don’t start the Gateway yet.",
                         selected: self.state.connectionMode == .unconfigured)
                     {
                         self.selectUnconfiguredGateway()
                     }
 
-                    Button(self.showAdvancedConnection ? self.t(.hideAdvanced) : self.t(.advanced)) {
+                    Button(self.showAdvancedConnection ? "Hide Advanced" : "Advanced…") {
                         withAnimation(.spring(response: 0.25, dampingFraction: 0.9)) {
                             self.showAdvancedConnection.toggle()
                         }
@@ -172,19 +177,19 @@ extension OnboardingView {
                         VStack(alignment: .leading, spacing: 10) {
                             Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
                                 GridRow {
-                                    Text(self.t(.transport))
+                                    Text("Transport")
                                         .font(.callout.weight(.semibold))
                                         .frame(width: labelWidth, alignment: .leading)
-                                    Picker(self.t(.transport), selection: self.$state.remoteTransport) {
-                                        Text(self.t(.sshTunnel)).tag(AppState.RemoteTransport.ssh)
-                                        Text(self.t(.directWs)).tag(AppState.RemoteTransport.direct)
+                                    Picker("Transport", selection: self.$state.remoteTransport) {
+                                        Text("SSH tunnel").tag(AppState.RemoteTransport.ssh)
+                                        Text("Direct (ws/wss)").tag(AppState.RemoteTransport.direct)
                                     }
                                     .pickerStyle(.segmented)
                                     .frame(width: fieldWidth)
                                 }
                                 if self.state.remoteTransport == .direct {
                                     GridRow {
-                                        Text(self.t(.gatewayUrl))
+                                        Text("Gateway URL")
                                             .font(.callout.weight(.semibold))
                                             .frame(width: labelWidth, alignment: .leading)
                                         TextField("wss://gateway.example.ts.net", text: self.$state.remoteUrl)
@@ -194,7 +199,7 @@ extension OnboardingView {
                                 }
                                 if self.state.remoteTransport == .ssh {
                                     GridRow {
-                                        Text(self.t(.sshTarget))
+                                        Text("SSH target")
                                             .font(.callout.weight(.semibold))
                                             .frame(width: labelWidth, alignment: .leading)
                                         TextField("user@host[:port]", text: self.$state.remoteTarget)
@@ -212,7 +217,7 @@ extension OnboardingView {
                                         }
                                     }
                                     GridRow {
-                                        Text(self.t(.identityFile))
+                                        Text("Identity file")
                                             .font(.callout.weight(.semibold))
                                             .frame(width: labelWidth, alignment: .leading)
                                         TextField("/Users/you/.ssh/id_ed25519", text: self.$state.remoteIdentity)
@@ -220,7 +225,7 @@ extension OnboardingView {
                                             .frame(width: fieldWidth)
                                     }
                                     GridRow {
-                                        Text(self.t(.projectRoot))
+                                        Text("Project root")
                                             .font(.callout.weight(.semibold))
                                             .frame(width: labelWidth, alignment: .leading)
                                         TextField("/home/you/Projects/openclaw", text: self.$state.remoteProjectRoot)
@@ -228,7 +233,7 @@ extension OnboardingView {
                                             .frame(width: fieldWidth)
                                     }
                                     GridRow {
-                                        Text(self.t(.cliPath))
+                                        Text("CLI path")
                                             .font(.callout.weight(.semibold))
                                             .frame(width: labelWidth, alignment: .leading)
                                         TextField(
@@ -241,8 +246,8 @@ extension OnboardingView {
                             }
 
                             Text(self.state.remoteTransport == .direct
-                                ? self.t(.directTip)
-                                : self.t(.sshTip))
+                                ? "Tip: use Tailscale Serve so the gateway has a valid HTTPS cert."
+                                : "Tip: keep Tailscale enabled so your gateway stays reachable.")
                                 .font(.footnote)
                                 .foregroundStyle(.secondary)
                                 .lineLimit(1)
@@ -256,13 +261,13 @@ extension OnboardingView {
 
     func gatewaySubtitle(for gateway: GatewayDiscoveryModel.DiscoveredGateway) -> String? {
         if self.state.remoteTransport == .direct {
-            return GatewayDiscoveryHelpers.directUrl(for: gateway) ?? self.t(.gatewayPairingOnly)
+            return GatewayDiscoveryHelpers.directUrl(for: gateway) ?? "Gateway pairing only"
         }
         if let host = GatewayDiscoveryHelpers.sanitizedTailnetHost(gateway.tailnetDns) ?? gateway.lanHost {
             let portSuffix = gateway.sshPort != 22 ? " · ssh \(gateway.sshPort)" : ""
             return "\(host)\(portSuffix)"
         }
-        return self.t(.gatewayPairingOnly)
+        return "Gateway pairing only"
     }
 
     func isSelectedGateway(_ gateway: GatewayDiscoveryModel.DiscoveredGateway) -> Bool {
@@ -322,15 +327,15 @@ extension OnboardingView {
 
     func anthropicAuthPage() -> some View {
         self.onboardingPage {
-            Text(self.t(.connectClaudeTitle))
+            Text("Connect Claude")
                 .font(.largeTitle.weight(.semibold))
-            Text(self.t(.connectClaudeSubtitle))
+            Text("Give your model the token it needs!")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 540)
                 .fixedSize(horizontal: false, vertical: true)
-            Text(self.t(.connectClaudeSupportNote))
+            Text("OpenClaw supports any model — we strongly recommend Opus 4.6 for the best experience.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -345,15 +350,15 @@ extension OnboardingView {
                     Text(
                         self.anthropicAuthConnected
                             ? (self.anthropicAuthVerified
-                                ? self.t(.claudeConnectedVerified)
-                                : self.t(.claudeConnected))
-                            : self.t(.notConnectedYet))
+                                ? "Claude connected (OAuth) — verified"
+                                : "Claude connected (OAuth)")
+                            : "Not connected yet")
                         .font(.headline)
                     Spacer()
                 }
 
                 if self.anthropicAuthConnected, self.anthropicAuthVerifying {
-                    Text(self.t(.verifyingOAuth))
+                    Text("Verifying OAuth…")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -363,13 +368,15 @@ extension OnboardingView {
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 } else if self.anthropicAuthVerified, let date = self.anthropicAuthVerifiedAt {
-                    Text(self.tf(.detectedWorkingOAuth, date.formatted(date: .abbreviated, time: .shortened)))
+                    Text("Detected working OAuth (\(date.formatted(date: .abbreviated, time: .shortened))).")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                Text(self.t(.oauthStorageNote))
+                Text(
+                    "This lets OpenClaw use Claude immediately. Credentials are stored at " +
+                        "`~/.openclaw/credentials/oauth.json` (owner-only).")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -383,12 +390,12 @@ extension OnboardingView {
 
                     Spacer()
 
-                    Button(self.t(.reveal)) {
+                    Button("Reveal") {
                         NSWorkspace.shared.activateFileViewerSelecting([OpenClawOAuthStore.oauthURL()])
                     }
                     .buttonStyle(.bordered)
 
-                    Button(self.t(.refresh)) {
+                    Button("Refresh") {
                         self.refreshAnthropicOAuthStatus()
                     }
                     .buttonStyle(.bordered)
@@ -399,14 +406,14 @@ extension OnboardingView {
                 HStack(spacing: 12) {
                     if !self.anthropicAuthVerified {
                         if self.anthropicAuthConnected {
-                            Button(self.t(.verify)) {
+                            Button("Verify") {
                                 Task { await self.verifyAnthropicOAuthIfNeeded(force: true) }
                             }
                             .buttonStyle(.borderedProminent)
                             .disabled(self.anthropicAuthBusy || self.anthropicAuthVerifying)
 
                             if self.anthropicAuthVerificationFailed {
-                                Button(self.t(.reauthOAuth)) {
+                                Button("Re-auth (OAuth)") {
                                     self.startAnthropicOAuth()
                                 }
                                 .buttonStyle(.bordered)
@@ -419,7 +426,7 @@ extension OnboardingView {
                                 if self.anthropicAuthBusy {
                                     ProgressView()
                                 } else {
-                                    Text(self.t(.openClaudeSignIn))
+                                    Text("Open Claude sign-in (OAuth)")
                                 }
                             }
                             .buttonStyle(.borderedProminent)
@@ -430,22 +437,22 @@ extension OnboardingView {
 
                 if !self.anthropicAuthVerified, self.anthropicAuthPKCE != nil {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(self.t(.pasteCodeState))
+                        Text("Paste the `code#state` value")
                             .font(.headline)
                         TextField("code#state", text: self.$anthropicAuthCode)
                             .textFieldStyle(.roundedBorder)
 
-                        Toggle(self.t(.autoDetectClipboard), isOn: self.$anthropicAuthAutoDetectClipboard)
+                        Toggle("Auto-detect from clipboard", isOn: self.$anthropicAuthAutoDetectClipboard)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .disabled(self.anthropicAuthBusy)
 
-                        Toggle(self.t(.autoConnectClipboard), isOn: self.$anthropicAuthAutoConnectClipboard)
+                        Toggle("Auto-connect when detected", isOn: self.$anthropicAuthAutoConnectClipboard)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .disabled(self.anthropicAuthBusy)
 
-                        Button(self.t(.connect)) {
+                        Button("Connect") {
                             Task { await self.finishAnthropicOAuth() }
                         }
                         .buttonStyle(.bordered)
@@ -459,9 +466,11 @@ extension OnboardingView {
                 }
 
                 self.onboardingCard(spacing: 8, padding: 12) {
-                    Text(self.t(.apiKeyAdvanced))
+                    Text("API key (advanced)")
                         .font(.headline)
-                    Text(self.t(.apiKeyAdvancedBody))
+                    Text(
+                        "You can also use an Anthropic API key, but this UI is instructions-only for now " +
+                            "(GUI apps don’t automatically inherit your shell env vars like `ANTHROPIC_API_KEY`).")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -482,9 +491,9 @@ extension OnboardingView {
 
     func permissionsPage() -> some View {
         self.onboardingPage {
-            Text(self.t(.grantPermissionsTitle))
+            Text("Grant permissions")
                 .font(.largeTitle.weight(.semibold))
-            Text(self.t(.grantPermissionsSubtitle))
+            Text("These macOS permissions let OpenClaw automate apps and capture context on this Mac.")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -506,11 +515,11 @@ extension OnboardingView {
                     Button {
                         Task { await self.refreshPerms() }
                     } label: {
-                        Label(self.t(.refresh), systemImage: "arrow.clockwise")
+                        Label("Refresh", systemImage: "arrow.clockwise")
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
-                    .help(self.t(.refreshStatusHelp))
+                    .help("Refresh status")
                     if self.isRequesting {
                         ProgressView()
                             .controlSize(.small)
@@ -521,123 +530,11 @@ extension OnboardingView {
         }
     }
 
-    func voiceAssistantPage() -> some View {
-        self.onboardingPage {
-            Text(self.t(.setupVoiceTitle))
-                .font(.largeTitle.weight(.semibold))
-            Text(self.t(.setupVoiceSubtitle))
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 520)
-                .fixedSize(horizontal: false, vertical: true)
-
-            self.onboardingCard(spacing: 14, padding: 16) {
-                VStack(alignment: .leading, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(self.t(.voiceDaemonTitle))
-                            .font(.headline)
-                        HStack(spacing: 8) {
-                            Text(self.voiceDaemonStatusLabel)
-                                .font(.callout.weight(.semibold))
-                            Spacer(minLength: 0)
-                            Button(self.voiceDaemonActionLabel) {
-                                self.voiceDaemon.start()
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                            .disabled(self.voiceDaemonIsBusy)
-                            if self.voiceDaemonIsBusy {
-                                ProgressView()
-                                    .controlSize(.small)
-                            }
-                        }
-                        if let note = self.voiceDaemon.statusNote, !note.isEmpty {
-                            Text(note)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        if let err = self.voiceDaemon.lastError, !err.isEmpty {
-                            Text(err)
-                                .font(.caption)
-                                .foregroundStyle(.red)
-                        }
-                        Text(self.t(.voiceDaemonNote))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    Divider()
-                        .padding(.vertical, 2)
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(self.t(.micSpeechTitle))
-                            .font(.headline)
-                        HStack(spacing: 8) {
-                            Image(systemName: self.voicePermissionsGranted
-                                ? "checkmark.circle.fill"
-                                : "exclamationmark.triangle.fill")
-                                .foregroundStyle(self.voicePermissionsGranted
-                                    ? Color(nsColor: .systemGreen)
-                                    : Color(nsColor: .systemOrange))
-                            Text(self.voicePermissionsGranted ? self.t(.accessGranted) : self.t(.needsAccess))
-                                .font(.callout.weight(.semibold))
-                            Spacer(minLength: 0)
-                            Button(self.voicePermissionsGranted ? self.t(.refresh) : self.t(.grantAccess)) {
-                                Task { await self.requestVoicePermissions() }
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                            .disabled(self.requestingVoicePermissions)
-                            if self.requestingVoicePermissions {
-                                ProgressView()
-                                    .controlSize(.small)
-                            }
-                        }
-                            Text(
-                                self.voicePermissionsGranted
-                                    ? self.t(.voiceCanListen)
-                                    : self.t(.voiceNeedsAccess))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    Divider()
-                        .padding(.vertical, 2)
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(self.t(.voiceWidgetTitle))
-                            .font(.headline)
-                        HStack(spacing: 10) {
-                            Button(self.t(.openVoiceWidget)) {
-                                VoiceWidgetWebPanelController.shared.show(pinned: true)
-                            }
-                            .buttonStyle(.borderedProminent)
-                            Toggle(self.t(.autoShowOnSpeech), isOn: self.$voiceWidgetAutoWake)
-                        }
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(self.t(.widgetLanguage))
-                                .font(.subheadline.weight(.semibold))
-                            Picker(self.t(.widgetLanguage), selection: self.$voiceWidgetLang) {
-                                Text("English").tag("en")
-                                Text("中文").tag("zh")
-                            }
-                            .pickerStyle(.segmented)
-                        }
-                        Text(self.t(.widgetFloatingNote))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-        }
-    }
-
     func cliPage() -> some View {
         self.onboardingPage {
-            Text(self.t(.installCliTitle))
+            Text("Install the CLI")
                 .font(.largeTitle.weight(.semibold))
-            Text(self.t(.installCliSubtitle))
+            Text("Required for local mode: installs `openclaw` so launchd can run the gateway.")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -649,7 +546,7 @@ extension OnboardingView {
                     Button {
                         Task { await self.installCLI() }
                     } label: {
-                        let title = self.cliInstalled ? self.t(.reinstallCli) : self.t(.installCli)
+                        let title = self.cliInstalled ? "Reinstall CLI" : "Install CLI"
                         ZStack {
                             Text(title)
                                 .opacity(self.installingCLI ? 0 : 1)
@@ -663,16 +560,16 @@ extension OnboardingView {
                     .buttonStyle(.borderedProminent)
                     .disabled(self.installingCLI)
 
-                    Button(self.copied ? self.t(.copied) : self.t(.copyInstallCommand)) {
+                    Button(self.copied ? "Copied" : "Copy install command") {
                         self.copyToPasteboard(self.devLinkCommand)
                     }
                     .disabled(self.installingCLI)
 
                     if self.cliInstalled, let loc = self.cliInstallLocation {
-                        Label(self.tf(.installedAt, loc), systemImage: "checkmark.circle.fill")
+                        Label("Installed at \(loc)", systemImage: "checkmark.circle.fill")
                             .font(.footnote)
                             .foregroundStyle(.green)
-                }
+                    }
                 }
 
                 if let cliStatus {
@@ -680,7 +577,11 @@ extension OnboardingView {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else if !self.cliInstalled, self.cliInstallLocation == nil {
-                    Text(self.t(.cliInstallNote))
+                    Text(
+                        """
+                        Installs a user-space Node 22+ runtime and the CLI (no Homebrew).
+                        Rerun anytime to reinstall or update.
+                        """)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -690,9 +591,11 @@ extension OnboardingView {
 
     func workspacePage() -> some View {
         self.onboardingPage {
-            Text(self.t(.workspaceTitle))
+            Text("Agent workspace")
                 .font(.largeTitle.weight(.semibold))
-            Text(self.t(.workspaceSubtitle))
+            Text(
+                "OpenClaw runs the agent from a dedicated workspace so it can load `AGENTS.md` " +
+                    "and write files there without mixing into your other projects.")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -701,19 +604,21 @@ extension OnboardingView {
 
             self.onboardingCard(spacing: 10) {
                 if self.state.connectionMode == .remote {
-                    Text(self.t(.remoteGatewayDetected))
+                    Text("Remote gateway detected")
                         .font(.headline)
-                    Text(self.t(.remoteGatewayNote))
+                    Text(
+                        "Create the workspace on the remote host (SSH in first). " +
+                            "The macOS app can’t write files on your gateway over SSH yet.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
 
-                    Button(self.copied ? self.t(.copied) : self.t(.copySetupCommand)) {
+                    Button(self.copied ? "Copied" : "Copy setup command") {
                         self.copyToPasteboard(self.workspaceBootstrapCommand)
                     }
                     .buttonStyle(.bordered)
                 } else {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(self.t(.workspaceFolder))
+                        Text("Workspace folder")
                             .font(.headline)
                         TextField(
                             AgentWorkspace.displayPath(for: OpenClawConfigFile.defaultWorkspaceURL()),
@@ -727,25 +632,26 @@ extension OnboardingView {
                                 if self.workspaceApplying {
                                     ProgressView()
                                 } else {
-                                    Text(self.t(.createWorkspace))
+                                    Text("Create workspace")
                                 }
                             }
                             .buttonStyle(.borderedProminent)
                             .disabled(self.workspaceApplying)
 
-                            Button(self.t(.openFolder)) {
+                            Button("Open folder") {
                                 let url = AgentWorkspace.resolveWorkspaceURL(from: self.workspacePath)
                                 NSWorkspace.shared.open(url)
                             }
                             .buttonStyle(.bordered)
                             .disabled(self.workspaceApplying)
 
-                            Button(self.t(.saveInConfig)) {
+                            Button("Save in config") {
                                 Task {
                                     let url = AgentWorkspace.resolveWorkspaceURL(from: self.workspacePath)
                                     let saved = await self.saveAgentWorkspace(AgentWorkspace.displayPath(for: url))
                                     if saved {
-                                        self.workspaceStatus = self.t(.workspaceSaved)
+                                        self.workspaceStatus =
+                                            "Saved to ~/.openclaw/openclaw.json (agents.defaults.workspace)"
                                     }
                                 }
                             }
@@ -760,7 +666,10 @@ extension OnboardingView {
                             .foregroundStyle(.secondary)
                             .lineLimit(2)
                     } else {
-                        Text(self.t(.workspaceTip))
+                        Text(
+                            "Tip: edit AGENTS.md in this folder to shape the assistant’s behavior. " +
+                                "For backup, make the workspace a private git repo so your agent’s " +
+                                "“memory” is versioned.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .lineLimit(2)
@@ -772,9 +681,11 @@ extension OnboardingView {
 
     func onboardingChatPage() -> some View {
         VStack(spacing: 16) {
-            Text(self.t(.meetAgentTitle))
+            Text("Meet your agent")
                 .font(.largeTitle.weight(.semibold))
-            Text(self.t(.meetAgentSubtitle))
+            Text(
+                "This is a dedicated onboarding chat. Your agent will introduce itself, " +
+                    "learn who you are, and help you connect WhatsApp or Telegram if you want.")
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -793,94 +704,65 @@ extension OnboardingView {
 
     func readyPage() -> some View {
         self.onboardingPage {
-            Text(self.t(.allSetTitle))
+            Text("All set")
                 .font(.largeTitle.weight(.semibold))
             self.onboardingCard {
                 if self.state.connectionMode == .unconfigured {
                     self.featureRow(
-                        title: self.t(.configureLaterReadyTitle),
-                        subtitle: self.t(.configureLaterReadySubtitle),
+                        title: "Configure later",
+                        subtitle: "Pick Local or Remote in Settings → General whenever you’re ready.",
                         systemImage: "gearshape")
                     Divider()
                         .padding(.vertical, 6)
                 }
                 if self.state.connectionMode == .remote {
                     self.featureRow(
-                        title: self.t(.remoteChecklistTitle),
-                        subtitle: self.t(.remoteChecklistSubtitle),
+                        title: "Remote gateway checklist",
+                        subtitle: """
+                        On your gateway host: install/update the `openclaw` package and make sure credentials exist
+                        (typically `~/.openclaw/credentials/oauth.json`). Then connect again if needed.
+                        """,
                         systemImage: "network")
                     Divider()
                         .padding(.vertical, 6)
                 }
                 self.featureRow(
-                    title: self.t(.openMenuBarTitle),
-                    subtitle: self.t(.openMenuBarSubtitle),
+                    title: "Open the menu bar panel",
+                    subtitle: "Click the OpenClaw menu bar icon for quick chat and status.",
                     systemImage: "bubble.left.and.bubble.right")
                 self.featureActionRow(
-                    title: self.t(.connectChannelsTitle),
-                    subtitle: self.t(.connectChannelsSubtitle),
+                    title: "Connect WhatsApp or Telegram",
+                    subtitle: "Open Settings → Channels to link channels and monitor status.",
                     systemImage: "link",
-                    buttonTitle: self.t(.openSettingsChannels))
+                    buttonTitle: "Open Settings → Channels")
                 {
                     self.openSettings(tab: .channels)
                 }
                 self.featureRow(
-                    title: self.t(.tryVoiceWakeTitle),
-                    subtitle: self.t(.tryVoiceWakeSubtitle),
+                    title: "Try Voice Wake",
+                    subtitle: "Enable Voice Wake in Settings for hands-free commands with a live transcript overlay.",
                     systemImage: "waveform.circle")
                 self.featureRow(
-                    title: self.t(.panelCanvasTitle),
-                    subtitle: self.t(.panelCanvasSubtitle),
+                    title: "Use the panel + Canvas",
+                    subtitle: "Open the menu bar panel for quick chat; the agent can show previews " +
+                        "and richer visuals in Canvas.",
                     systemImage: "rectangle.inset.filled.and.person.filled")
                 self.featureActionRow(
-                    title: self.t(.morePowersTitle),
-                    subtitle: self.t(.morePowersSubtitle),
+                    title: "Give your agent more powers",
+                    subtitle: "Enable optional skills (Peekaboo, oracle, camsnap, …) from Settings → Skills.",
                     systemImage: "sparkles",
-                    buttonTitle: self.t(.openSettingsSkills))
+                    buttonTitle: "Open Settings → Skills")
                 {
                     self.openSettings(tab: .skills)
                 }
                 self.skillsOverview
-                Toggle(self.t(.launchAtLogin), isOn: self.$state.launchAtLogin)
+                Toggle("Launch at login", isOn: self.$state.launchAtLogin)
                     .onChange(of: self.state.launchAtLogin) { _, newValue in
                         AppStateStore.updateLaunchAtLogin(enabled: newValue)
                     }
             }
         }
         .task { await self.maybeLoadOnboardingSkills() }
-    }
-
-    private var voiceDaemonStatusLabel: String {
-        switch self.voiceDaemon.status {
-        case .stopped:
-            return self.t(.voiceDaemonStopped)
-        case .starting:
-            return self.t(.voiceDaemonStarting)
-        case let .running(details):
-            if let details, !details.isEmpty {
-                return self.tf(.voiceDaemonRunningDetails, details)
-            }
-            return self.t(.voiceDaemonRunning)
-        case let .failed(reason):
-            if reason.isEmpty { return self.t(.voiceDaemonFailed) }
-            return self.tf(.voiceDaemonFailedDetails, reason)
-        }
-    }
-
-    private var voiceDaemonActionLabel: String {
-        switch self.voiceDaemon.status {
-        case .running:
-            return self.t(.voiceDaemonRestart)
-        case .starting:
-            return self.t(.voiceDaemonStarting)
-        case .stopped, .failed:
-            return self.t(.voiceDaemonRetry)
-        }
-    }
-
-    private var voiceDaemonIsBusy: Bool {
-        if case .starting = self.voiceDaemon.status { return true }
-        return false
     }
 
     private func maybeLoadOnboardingSkills() async {
@@ -895,14 +777,14 @@ extension OnboardingView {
                 .padding(.vertical, 6)
 
             HStack(spacing: 10) {
-                Text(self.t(.skillsIncluded))
+                Text("Skills included")
                     .font(.headline)
                 Spacer(minLength: 0)
                 if self.onboardingSkillsModel.isLoading {
                     ProgressView()
                         .controlSize(.small)
                 } else {
-                    Button(self.t(.refresh)) {
+                    Button("Refresh") {
                         Task { await self.onboardingSkillsModel.refresh() }
                     }
                     .buttonStyle(.link)
@@ -911,20 +793,22 @@ extension OnboardingView {
 
             if let error = self.onboardingSkillsModel.error {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(self.t(.couldntLoadSkillsTitle))
+                    Text("Couldn’t load skills from the Gateway.")
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(.orange)
-                    Text(self.t(.couldntLoadSkillsBody))
+                    Text(
+                        "Make sure the Gateway is running and connected, " +
+                            "then hit Refresh (or open Settings → Skills).")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text(self.tf(.detailsPrefix, error))
+                    Text("Details: \(error)")
                         .font(.caption.monospaced())
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             } else if self.onboardingSkillsModel.skills.isEmpty {
-                Text(self.t(.noSkillsYet))
+                Text("No skills reported yet.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             } else {

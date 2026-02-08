@@ -64,11 +64,15 @@ apps/ios/*.mobileprovision
 
 # Local untracked files
 .local/
-.vscode/
 IDENTITY.md
 USER.md
 .tgz
 
 # local tooling
 .serena/
-apps/voice-video-daemon/.tools/
+
+# Agent credentials and memory (NEVER COMMIT)
+memory/
+.agent/*.json
+!.agent/workflows/
+local/

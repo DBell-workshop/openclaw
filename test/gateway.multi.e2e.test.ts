@@ -6,8 +6,8 @@ import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { loadOrCreateDeviceIdentity } from "../src/infra/device-identity.js";
 import { GatewayClient } from "../src/gateway/client.js";
+import { loadOrCreateDeviceIdentity } from "../src/infra/device-identity.js";
 import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../src/utils/message-channel.js";
 
 type GatewayInstance = {
@@ -114,7 +114,7 @@ const spawnGatewayInstance = async (name: string): Promise<GatewayInstance> => {
     child = spawn(
       "node",
       [
-        "dist/index.mjs",
+        "dist/index.js",
         "gateway",
         "--port",
         String(port),
@@ -181,7 +181,9 @@ const stopGatewayInstance = async (inst: GatewayInstance) => {
   }
   const exited = await Promise.race([
     new Promise<boolean>((resolve) => {
-      if (inst.child.exitCode !== null) return resolve(true);
+      if (inst.child.exitCode !== null) {
+        return resolve(true);
+      }
       inst.child.once("exit", () => resolve(true));
     }),
     sleep(5_000).then(() => false),
@@ -199,7 +201,7 @@ const stopGatewayInstance = async (inst: GatewayInstance) => {
 const runCliJson = async (args: string[], env: NodeJS.ProcessEnv): Promise<unknown> => {
   const stdout: string[] = [];
   const stderr: string[] = [];
-  const child = spawn("node", ["dist/index.mjs", ...args], {
+  const child = spawn("node", ["dist/index.js", ...args], {
     cwd: process.cwd(),
     env: { ...process.env, ...env },
     stdio: ["ignore", "pipe", "pipe"],
@@ -299,17 +301,23 @@ const connectNode = async (
     commands: ["system.run"],
     deviceIdentity,
     onHelloOk: () => {
-      if (settled) return;
+      if (settled) {
+        return;
+      }
       settled = true;
       resolveReady?.();
     },
     onConnectError: (err) => {
-      if (settled) return;
+      if (settled) {
+        return;
+      }
       settled = true;
       rejectReady?.(err);
     },
     onClose: (code, reason) => {
-      if (settled) return;
+      if (settled) {
+        return;
+      }
       settled = true;
       rejectReady?.(new Error(`gateway closed (${code}): ${reason}`));
     },
@@ -341,7 +349,9 @@ const waitForNodeStatus = async (inst: GatewayInstance, nodeId: string, timeoutM
       },
     )) as NodeListPayload;
     const match = list.nodes?.find((n) => n.nodeId === nodeId);
-    if (match?.connected && match?.paired) return;
+    if (match?.connected && match?.paired) {
+      return;
+    }
     await sleep(50);
   }
   throw new Error(`timeout waiting for node status for ${nodeId}`);

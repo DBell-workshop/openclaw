@@ -1,7 +1,7 @@
 import type { proto, WAMessage } from "@whiskeysockets/baileys";
 import { downloadMediaMessage, normalizeMessageContent } from "@whiskeysockets/baileys";
-import { logVerbose } from "../../globals.js";
 import type { createWaSocket } from "../session.js";
+import { logVerbose } from "../../globals.js";
 
 function unwrapMessage(message: proto.IMessage | undefined): proto.IMessage | undefined {
   const normalized = normalizeMessageContent(message);
@@ -13,7 +13,9 @@ export async function downloadInboundMedia(
   sock: Awaited<ReturnType<typeof createWaSocket>>,
 ): Promise<{ buffer: Buffer; mimetype?: string } | undefined> {
   const message = unwrapMessage(msg.message as proto.IMessage | undefined);
-  if (!message) return undefined;
+  if (!message) {
+    return undefined;
+  }
   const mimetype =
     message.imageMessage?.mimetype ??
     message.videoMessage?.mimetype ??
