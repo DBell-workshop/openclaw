@@ -326,6 +326,67 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// Reinstalling the app (copying a new .app bundle) changes this fingerprint.
+    /// When that happens we reset onboarding flags so users get the first-run guide again.
+    @MainActor
+    private func resetOnboardingIfFreshInstallDetected() {
+        let defaults = UserDefaults.standard
+        let currentFingerprint = self.currentInstallFingerprint()
+        let hadSeenOnboarding = defaults.bool(forKey: onboardingSeenKey)
+
+        let previous = defaults.string(forKey: onboardingInstallFingerprintKey)
+        if previous == nil {
+            defaults.set(currentFingerprint, forKey: onboardingInstallFingerprintKey)
+            // Migrate installs created before fingerprint tracking existed.
+            // If onboarding had already been marked as seen, re-run first-run onboarding once.
+            if hadSeenOnboarding {
+                defaults.set(false, forKey: onboardingSeenKey)
+                defaults.set(0, forKey: onboardingVersionKey)
+                AppStateStore.shared.onboardingSeen = false
+            }
+            return
+        }
+
+        guard previous != currentFingerprint else { return }
+        defaults.set(currentFingerprint, forKey: onboardingInstallFingerprintKey)
+        defaults.set(false, forKey: onboardingSeenKey)
+        defaults.set(0, forKey: onboardingVersionKey)
+        AppStateStore.shared.onboardingSeen = false
+    }
+
+    private func currentInstallFingerprint() -> String {
+        let bundleURL = Bundle.main.bundleURL.standardizedFileURL.resolvingSymlinksInPath()
+        var parts = ["path=\(bundleURL.path)"]
+
+        if let attrs = try? FileManager.default.attributesOfItem(atPath: bundleURL.path) {
+            if let inode = attrs[.systemFileNumber] as? NSNumber {
+                parts.append("inode=\(inode.int64Value)")
+            }
+            if let system = attrs[.systemNumber] as? NSNumber {
+                parts.append("system=\(system.int64Value)")
+            }
+            if let createdAt = attrs[.creationDate] as? Date {
+                parts.append("created=\(Int(createdAt.timeIntervalSince1970))")
+            }
+            if let modifiedAt = attrs[.modificationDate] as? Date {
+                parts.append("modified=\(Int(modifiedAt.timeIntervalSince1970))")
+            }
+        }
+
+        if let bundleID = Bundle.main.bundleIdentifier, !bundleID.isEmpty {
+            parts.append("bundleID=\(bundleID)")
+        }
+        if let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String,
+           !version.isEmpty
+        {
+            parts.append("version=\(version)")
+        }
+        if let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String, !build.isEmpty {
+            parts.append("build=\(build)")
+        }
+
+        return parts.joined(separator: "|")
+    }
     private func isDuplicateInstance() -> Bool {
         guard let bundleID = Bundle.main.bundleIdentifier else { return false }
         let running = NSWorkspace.shared.runningApplications.filter { $0.bundleIdentifier == bundleID }
