@@ -1,26 +1,26 @@
 import Foundation
 
 enum OnboardingLanguage: String, CaseIterable {
-    case en = "en"
+    case en
     case zhHans = "zh-Hans"
     case zhHant = "zh-Hant"
-    case ja = "ja"
+    case ja
 
     var displayName: String {
         switch self {
         case .en:
-            return "English"
+            "English"
         case .zhHans:
-            return "简体中文"
+            "简体中文"
         case .zhHant:
-            return "繁體中文"
+            "繁體中文"
         case .ja:
-            return "日本語"
+            "日本語"
         }
     }
 
     static func preferredDefault() -> OnboardingLanguage {
-        return .en
+        .en
     }
 
     static func fromDefaults() -> OnboardingLanguage {
@@ -196,7 +196,6 @@ enum OnboardingCopy {
             .securityNoticeTitle: "Security notice",
             .securityNoticeBody: """
             The connected AI agent (e.g. Claude) can trigger powerful actions on your Mac, including running commands, reading/writing files, and capturing screenshots — depending on the permissions you grant.
-
             Only enable MyCatCat if you understand the risks and trust the prompts and integrations you use.
             """,
             .legalAgreementPrefix: "By continuing, you agree to the",
@@ -360,7 +359,6 @@ enum OnboardingCopy {
             .securityNoticeTitle: "安全提示",
             .securityNoticeBody: """
             连接的 AI 助理（如 Claude）可能在你的 Mac 上执行强力操作，包括运行命令、读写文件、截屏等——取决于你授予的权限。
-
             只有在理解风险并信任所使用的提示与集成时才启用 MyCatCat。
             """,
             .legalAgreementPrefix: "继续即表示你同意",
@@ -518,7 +516,6 @@ enum OnboardingCopy {
             .securityNoticeTitle: "安全提示",
             .securityNoticeBody: """
             連接的 AI 助理（如 Claude）可能在你的 Mac 上執行強力操作，包括執行命令、讀寫檔案、截圖等——取決於你授予的權限。
-
             只有在理解風險並信任所使用的提示與整合時才啟用 MyCatCat。
             """,
             .legalAgreementPrefix: "繼續即表示你同意",
@@ -676,7 +673,6 @@ enum OnboardingCopy {
             .securityNoticeTitle: "セキュリティ注意",
             .securityNoticeBody: """
             接続された AI エージェント（例：Claude）は、付与した権限に応じて、コマンド実行・ファイルの読み書き・スクリーンショット取得など強力な操作を行えます。
-
             リスクを理解し、利用するプロンプトや連携を信頼できる場合にのみ MyCatCat を有効化してください。
             """,
             .legalAgreementPrefix: "続行すると、次に同意したものとみなされます:",
@@ -849,21 +845,21 @@ enum OnboardingCopy {
 
 extension OnboardingView {
     var onboardingLanguage: OnboardingLanguage {
-        OnboardingLanguage(rawValue: self.onboardingLanguageRaw) ?? OnboardingLanguage.preferredDefault()
+        OnboardingLanguage(rawValue: onboardingLanguageRaw) ?? OnboardingLanguage.preferredDefault()
     }
 
     func ensureOnboardingLanguage() {
-        if OnboardingLanguage(rawValue: self.onboardingLanguageRaw) == nil {
-            self.onboardingLanguageRaw = OnboardingLanguage.preferredDefault().rawValue
+        if OnboardingLanguage(rawValue: onboardingLanguageRaw) == nil {
+            onboardingLanguageRaw = OnboardingLanguage.preferredDefault().rawValue
         }
     }
 
     func t(_ key: OnboardingCopyKey) -> String {
-        OnboardingCopy.text(key, lang: self.onboardingLanguage)
+        OnboardingCopy.text(key, lang: onboardingLanguage)
     }
 
     func tf(_ key: OnboardingCopyKey, _ args: CVarArg...) -> String {
-        let format = self.t(key)
-        return String(format: format, locale: Locale(identifier: self.onboardingLanguage.rawValue), arguments: args)
+        let format = t(key)
+        return String(format: format, locale: Locale(identifier: onboardingLanguage.rawValue), arguments: args)
     }
 }
