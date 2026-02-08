@@ -307,7 +307,13 @@ enum OnboardingCopy {
             .workspaceTip: "Tip: edit AGENTS.md in this folder to shape the assistant’s behavior. For backup, make the workspace a private git repo so your agent’s “memory” is versioned.",
             .meetAgentTitle: "Meet your agent",
             .meetAgentSubtitle: "This is a dedicated onboarding chat. Your agent will introduce itself, learn who you are, and help you connect WhatsApp or Telegram if you want.",
-            .onboardingChatPrompt: "Hi! I just installed MyCatCat and you’re my brand‑new agent. Please start the first‑run ritual from BOOTSTRAP.md, ask one question at a time, and before we talk about WhatsApp/Telegram, visit soul.md with me to craft SOUL.md: ask what matters to me and how you should be. Then guide me through choosing how we should talk (web‑only, WhatsApp, or Telegram).",
+            .onboardingChatPrompt: """
+            Hi! I just installed MyCatCat and you’re my brand-new agent.
+            Please start the first-run ritual from BOOTSTRAP.md and ask one question at a time.
+            Before we talk about WhatsApp/Telegram, visit soul.md with me to craft SOUL.md:
+            ask what matters to me and how you should be.
+            Then guide me through choosing how we should talk (web-only, WhatsApp, or Telegram).
+            """,
             .allSetTitle: "All set",
             .configureLaterReadyTitle: "Configure later",
             .configureLaterReadySubtitle: "Pick Local or Remote in Settings → General whenever you’re ready.",
@@ -781,7 +787,13 @@ enum OnboardingCopy {
             .workspaceTip: "ヒント: このフォルダの AGENTS.md を編集して助手の振る舞いを調整できます。バックアップには、ワークスペースをプライベート Git リポジトリにして「記憶」をバージョン管理するのがおすすめです。",
             .meetAgentTitle: "エージェントに会う",
             .meetAgentSubtitle: "これは専用のオンボーディングチャットです。エージェントが自己紹介し、あなたのことを学び、必要なら WhatsApp / Telegram の接続を手伝います。",
-            .onboardingChatPrompt: "こんにちは！MyCatCat をインストールしたばかりで、あなたが新しいエージェントです。まず BOOTSTRAP.md の初回手順を始めてください。質問は一度に一つずつ。WhatsApp/Telegram の話に入る前に、soul.md を一緒に確認して SOUL.md を作成してください。私が大切にしていることと、あなたがどのように振る舞うべきかを聞いてください。その後、会話方法（Web のみ／WhatsApp／Telegram）を選ぶよう案内してください。",
+            .onboardingChatPrompt: """
+            こんにちは！MyCatCat をインストールしたばかりで、あなたが新しいエージェントです。
+            まず BOOTSTRAP.md の初回手順を始めてください。質問は一度に一つずつ。
+            WhatsApp/Telegram の話に入る前に、soul.md を一緒に確認して SOUL.md を作成してください。
+            私が大切にしていることと、あなたがどのように振る舞うべきかを聞いてください。
+            その後、会話方法（Web のみ／WhatsApp／Telegram）を選ぶよう案内してください。
+            """,
             .allSetTitle: "準備完了",
             .configureLaterReadyTitle: "後で設定",
             .configureLaterReadySubtitle: "準備ができたら 設定 → 一般 でローカル／リモートを選択してください。",
