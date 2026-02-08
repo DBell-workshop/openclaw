@@ -342,11 +342,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @MainActor
     private func resetOnboardingIfFreshInstallDetected() {
         let defaults = UserDefaults.standard
-        guard let currentFingerprint = self.currentInstallFingerprint() else { return }
+        let currentFingerprint = self.currentInstallFingerprint()
+        let hadSeenOnboarding = defaults.bool(forKey: onboardingSeenKey)
 
         let previous = defaults.string(forKey: onboardingInstallFingerprintKey)
         if previous == nil {
             defaults.set(currentFingerprint, forKey: onboardingInstallFingerprintKey)
+            // Migrate installs created before fingerprint tracking existed.
+            // If onboarding had already been marked as seen, re-run first-run onboarding once.
+            if hadSeenOnboarding {
+                defaults.set(false, forKey: onboardingSeenKey)
+                defaults.set(0, forKey: onboardingVersionKey)
+                AppStateStore.shared.onboardingSeen = false
+            }
             return
         }
 
@@ -357,17 +365,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         AppStateStore.shared.onboardingSeen = false
     }
 
-    private func currentInstallFingerprint() -> String? {
-        let bundleURL = Bundle.main.bundleURL
-        guard let values = try? bundleURL.resourceValues(forKeys: [.creationDateKey, .contentModificationDateKey]) else {
-            return nil
+    private func currentInstallFingerprint() -> String {
+        let bundleURL = Bundle.main.bundleURL.standardizedFileURL.resolvingSymlinksInPath()
+        var parts = ["path=\(bundleURL.path)"]
+
+        if let attrs = try? FileManager.default.attributesOfItem(atPath: bundleURL.path) {
+            if let inode = attrs[.systemFileNumber] as? NSNumber {
+                parts.append("inode=\(inode.int64Value)")
+            }
+            if let system = attrs[.systemNumber] as? NSNumber {
+                parts.append("system=\(system.int64Value)")
+            }
+            if let createdAt = attrs[.creationDate] as? Date {
+                parts.append("created=\(Int(createdAt.timeIntervalSince1970))")
+            }
+            if let modifiedAt = attrs[.modificationDate] as? Date {
+                parts.append("modified=\(Int(modifiedAt.timeIntervalSince1970))")
+            }
         }
-        guard let createdAt = values.creationDate?.timeIntervalSinceReferenceDate,
-              let modifiedAt = values.contentModificationDate?.timeIntervalSinceReferenceDate else
+
+        if let bundleID = Bundle.main.bundleIdentifier, !bundleID.isEmpty {
+            parts.append("bundleID=\(bundleID)")
+        }
+        if let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String,
+           !version.isEmpty
         {
-            return nil
+            parts.append("version=\(version)")
         }
-        return "\(bundleURL.path)|\(Int(createdAt))|\(Int(modifiedAt))"
+        if let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String, !build.isEmpty {
+            parts.append("build=\(build)")
+        }
+
+        return parts.joined(separator: "|")
     }
 
     private func isDuplicateInstance() -> Bool {
