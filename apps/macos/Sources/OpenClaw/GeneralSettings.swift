@@ -33,8 +33,8 @@ struct GeneralSettings: View {
             VStack(alignment: .leading, spacing: 18) {
                 VStack(alignment: .leading, spacing: 12) {
                     SettingsToggleRow(
-                        title: "OpenClaw active",
-                        subtitle: "Pause to stop the OpenClaw gateway; no messages will be processed.",
+                        title: "MyCatCat active",
+                        subtitle: "Pause to stop the MyCatCat gateway; no messages will be processed.",
                         binding: self.activeBinding)
 
                     self.connectionSection
@@ -43,12 +43,12 @@ struct GeneralSettings: View {
 
                     SettingsToggleRow(
                         title: "Launch at login",
-                        subtitle: "Automatically start OpenClaw after you sign in.",
+                        subtitle: "Automatically start MyCatCat after you sign in.",
                         binding: self.$state.launchAtLogin)
 
                     SettingsToggleRow(
                         title: "Show Dock icon",
-                        subtitle: "Keep OpenClaw visible in the Dock instead of menu-bar-only mode.",
+                        subtitle: "Keep MyCatCat visible in the Dock instead of menu-bar-only mode.",
                         binding: self.$state.showDockIcon)
 
                     SettingsToggleRow(
@@ -108,7 +108,7 @@ struct GeneralSettings: View {
                 Spacer(minLength: 12)
                 HStack {
                     Spacer()
-                    Button("Quit OpenClaw") { NSApp.terminate(nil) }
+                    Button("Quit MyCatCat") { NSApp.terminate(nil) }
                         .buttonStyle(.borderedProminent)
                 }
             }
@@ -135,7 +135,7 @@ struct GeneralSettings: View {
 
     private var connectionSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("OpenClaw runs")
+            Text("MyCatCat runs")
                 .font(.title3.weight(.semibold))
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -267,7 +267,7 @@ struct GeneralSettings: View {
                                 .frame(width: 280)
                         }
                         LabeledContent("CLI path") {
-                            TextField("/Applications/OpenClaw.app/.../openclaw", text: self.$state.remoteCliPath)
+                            TextField("/Applications/MyCatCat.app/.../openclaw", text: self.$state.remoteCliPath)
                                 .textFieldStyle(.roundedBorder)
                                 .frame(width: 280)
                         }

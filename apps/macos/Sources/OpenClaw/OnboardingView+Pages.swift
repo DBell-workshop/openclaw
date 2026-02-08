@@ -232,7 +232,7 @@ extension OnboardingView {
                                             .font(.callout.weight(.semibold))
                                             .frame(width: labelWidth, alignment: .leading)
                                         TextField(
-                                            "/Applications/OpenClaw.app/.../openclaw",
+                                            "/Applications/MyCatCat.app/.../openclaw",
                                             text: self.$state.remoteCliPath)
                                             .textFieldStyle(.roundedBorder)
                                             .frame(width: fieldWidth)
