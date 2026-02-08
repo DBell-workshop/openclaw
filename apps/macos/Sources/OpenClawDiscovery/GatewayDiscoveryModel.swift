@@ -1,7 +1,7 @@
-import OpenClawKit
 import Foundation
 import Network
 import Observation
+import OpenClawKit
 import OSLog
 
 @MainActor
@@ -18,7 +18,10 @@ public final class GatewayDiscoveryModel {
     }
 
     public struct DiscoveredGateway: Identifiable, Equatable, Sendable {
-        public var id: String { self.stableID }
+        public var id: String {
+            self.stableID
+        }
+
         public var displayName: String
         public var lanHost: String?
         public var tailnetDns: String?
@@ -456,7 +459,9 @@ public final class GatewayDiscoveryModel {
 
     private nonisolated static func prettifyInstanceName(_ decodedName: String) -> String {
         let normalized = decodedName.split(whereSeparator: \.isWhitespace).joined(separator: " ")
-        let stripped = normalized.replacingOccurrences(of: " (OpenClaw)", with: "").replacingOccurrences(of: " (MyCatCat)", with: "")
+        let stripped = normalized.replacingOccurrences(of: " (OpenClaw)", with: "").replacingOccurrences(
+            of: " (MyCatCat)",
+            with: "")
             .replacingOccurrences(of: #"\s+\(\d+\)$"#, with: "", options: .regularExpression)
         return stripped.trimmingCharacters(in: .whitespacesAndNewlines)
     }

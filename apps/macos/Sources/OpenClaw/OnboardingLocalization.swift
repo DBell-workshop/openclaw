@@ -28,7 +28,7 @@ enum OnboardingLanguage: String, CaseIterable {
         if let lang = OnboardingLanguage(rawValue: stored) {
             return lang
         }
-        return preferredDefault()
+        return self.preferredDefault()
     }
 }
 
@@ -839,7 +839,7 @@ enum OnboardingCopy {
     }
 
     static func text(_ key: OnboardingCopyKey) -> String {
-        text(key, lang: OnboardingLanguage.fromDefaults())
+        self.text(key, lang: OnboardingLanguage.fromDefaults())
     }
 }
 
@@ -855,11 +855,11 @@ extension OnboardingView {
     }
 
     func t(_ key: OnboardingCopyKey) -> String {
-        OnboardingCopy.text(key, lang: onboardingLanguage)
+        OnboardingCopy.text(key, lang: self.onboardingLanguage)
     }
 
     func tf(_ key: OnboardingCopyKey, _ args: CVarArg...) -> String {
-        let format = t(key)
-        return String(format: format, locale: Locale(identifier: onboardingLanguage.rawValue), arguments: args)
+        let format = self.t(key)
+        return String(format: format, locale: Locale(identifier: self.onboardingLanguage.rawValue), arguments: args)
     }
 }

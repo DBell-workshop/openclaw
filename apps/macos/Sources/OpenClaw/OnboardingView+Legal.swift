@@ -6,14 +6,16 @@ enum OnboardingLegalDocument: String, Identifiable {
     case terms
     case privacy
 
-    var id: String { self.rawValue }
+    var id: String {
+        self.rawValue
+    }
 
     var resourceBaseName: String {
         switch self {
         case .terms:
-            return "terms-of-service"
+            "terms-of-service"
         case .privacy:
-            return "privacy-policy"
+            "privacy-policy"
         }
     }
 }
@@ -58,9 +60,9 @@ extension OnboardingView {
     private func legalTitle(for document: OnboardingLegalDocument) -> String {
         switch document {
         case .terms:
-            return self.t(.termsOfService)
+            self.t(.termsOfService)
         case .privacy:
-            return self.t(.privacyPolicy)
+            self.t(.privacyPolicy)
         }
     }
 

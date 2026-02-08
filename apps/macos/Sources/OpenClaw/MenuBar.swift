@@ -341,8 +341,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.reopenObserver = DistributedNotificationCenter.default().addObserver(
             forName: self.reopenNotificationName,
             object: nil,
-            queue: .main
-        ) { [weak self] notification in
+            queue: .main)
+        { [weak self] notification in
             let shouldShowOnboarding = notification.userInfo?["showOnboarding"] as? Bool ?? false
             Task { @MainActor in
                 self?.handleReopenRequest(showOnboarding: shouldShowOnboarding)
@@ -445,6 +445,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         return parts.joined(separator: "|")
     }
+
     private func isDuplicateInstance() -> Bool {
         guard let bundleID = Bundle.main.bundleIdentifier else { return false }
         let running = NSWorkspace.shared.runningApplications.filter { $0.bundleIdentifier == bundleID }
@@ -463,7 +464,7 @@ protocol UpdaterProviding: AnyObject {
     func checkForUpdates(_ sender: Any?)
 }
 
-// No-op updater used for debug/dev runs to suppress Sparkle dialogs.
+/// No-op updater used for debug/dev runs to suppress Sparkle dialogs.
 final class DisabledUpdaterController: UpdaterProviding {
     var automaticallyChecksForUpdates: Bool = false
     var automaticallyDownloadsUpdates: Bool = false
@@ -512,7 +513,9 @@ final class SparkleUpdaterController: NSObject, UpdaterProviding {
         set { self.controller.updater.automaticallyDownloadsUpdates = newValue }
     }
 
-    var isAvailable: Bool { true }
+    var isAvailable: Bool {
+        true
+    }
 
     func checkForUpdates(_ sender: Any?) {
         self.controller.checkForUpdates(sender)
