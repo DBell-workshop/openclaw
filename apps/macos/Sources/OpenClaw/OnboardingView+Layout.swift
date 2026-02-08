@@ -65,6 +65,9 @@ extension OnboardingView {
             self.refreshBootstrapStatus()
             self.preferredGatewayID = GatewayDiscoveryPreferences.preferredStableID()
         }
+        .sheet(item: self.$presentedLegalDocument) { document in
+            self.legalDocumentSheet(for: document)
+        }
     }
 
     func activePageIndex(for pageCursor: Int) -> Int {

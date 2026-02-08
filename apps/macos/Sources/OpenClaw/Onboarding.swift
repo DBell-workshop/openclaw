@@ -95,6 +95,10 @@ struct OnboardingView: View {
     @State var onboardingWizard = OnboardingWizardModel()
     @State var didLoadOnboardingSkills = false
     @State var localGatewayProbe: LocalGatewayProbe?
+    @State var presentedLegalDocument: OnboardingLegalDocument?
+    @AppStorage(onboardingLanguageKey) var onboardingLanguageRaw: String = ""
+    @AppStorage(voiceWidgetLangKey) var voiceWidgetLang: String = "en"
+    @AppStorage(voiceWidgetAutoWakeKey) var voiceWidgetAutoWake: Bool = true
     @Bindable var state: AppState
     var permissionMonitor: PermissionMonitor
 
