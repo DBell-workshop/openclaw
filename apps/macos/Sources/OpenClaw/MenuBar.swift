@@ -253,6 +253,8 @@ private final class StatusItemMouseHandlerView: NSView {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var state: AppState?
     private let webChatAutoLogger = Logger(subsystem: "ai.openclaw", category: "Chat")
+    private let reopenNotificationName = Notification.Name("ai.openclaw.mac.reopen-request")
+    private var reopenObserver: NSObjectProtocol?
     let updaterController: UpdaterProviding = makeUpdaterController()
 
     func application(_: NSApplication, open urls: [URL]) {
@@ -265,10 +267,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @MainActor
     func applicationDidFinishLaunching(_ notification: Notification) {
+        self.resetOnboardingIfFreshInstallDetected()
         if self.isDuplicateInstance() {
+            self.forwardLaunchRequestToPrimaryInstance()
             NSApp.terminate(nil)
             return
         }
+        self.installReopenObserver()
         self.state = AppStateStore.shared
         AppActivationPolicy.apply(showDockIcon: self.state?.showDockIcon ?? false)
         if let state {
@@ -301,6 +306,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        if let reopenObserver {
+            DistributedNotificationCenter.default().removeObserver(reopenObserver)
+            self.reopenObserver = nil
+        }
         PresenceReporter.shared.stop()
         NodePairingApprovalPrompter.shared.stop()
         DevicePairingApprovalPrompter.shared.stop()
@@ -318,12 +327,61 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @MainActor
     private func scheduleFirstRunOnboardingIfNeeded() {
-        let seenVersion = UserDefaults.standard.integer(forKey: onboardingVersionKey)
-        let shouldShow = seenVersion < currentOnboardingVersion || !AppStateStore.shared.onboardingSeen
+        let shouldShow = self.shouldShowOnboardingFromDefaults()
         guard shouldShow else { return }
+        AppStateStore.shared.onboardingSeen = false
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
             OnboardingController.shared.show()
         }
+    }
+
+    @MainActor
+    private func installReopenObserver() {
+        guard self.reopenObserver == nil else { return }
+        self.reopenObserver = DistributedNotificationCenter.default().addObserver(
+            forName: self.reopenNotificationName,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            let shouldShowOnboarding = notification.userInfo?["showOnboarding"] as? Bool ?? false
+            Task { @MainActor in
+                self?.handleReopenRequest(showOnboarding: shouldShowOnboarding)
+            }
+        }
+    }
+
+    @MainActor
+    private func forwardLaunchRequestToPrimaryInstance() {
+        let shouldShowOnboarding = self.shouldShowOnboardingFromDefaults()
+        DistributedNotificationCenter.default().postNotificationName(
+            self.reopenNotificationName,
+            object: nil,
+            userInfo: ["showOnboarding": shouldShowOnboarding],
+            deliverImmediately: true)
+
+        guard let bundleID = Bundle.main.bundleIdentifier else { return }
+        let pid = ProcessInfo.processInfo.processIdentifier
+        let existing = NSWorkspace.shared.runningApplications.first {
+            $0.bundleIdentifier == bundleID && $0.processIdentifier != pid
+        }
+        _ = existing?.activate(options: [.activateAllWindows])
+    }
+
+    @MainActor
+    private func handleReopenRequest(showOnboarding: Bool) {
+        NSApp.activate(ignoringOtherApps: true)
+        guard showOnboarding else { return }
+        UserDefaults.standard.set(false, forKey: onboardingSeenKey)
+        UserDefaults.standard.set(0, forKey: onboardingVersionKey)
+        AppStateStore.shared.onboardingSeen = false
+        OnboardingController.shared.show()
+    }
+
+    @MainActor
+    private func shouldShowOnboardingFromDefaults() -> Bool {
+        let seenVersion = UserDefaults.standard.integer(forKey: onboardingVersionKey)
+        let seen = UserDefaults.standard.bool(forKey: onboardingSeenKey)
+        return seenVersion < currentOnboardingVersion || !seen
     }
 
     /// Reinstalling the app (copying a new .app bundle) changes this fingerprint.
