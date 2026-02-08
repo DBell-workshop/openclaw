@@ -1,5 +1,5 @@
-import { TtsPlayback } from "./tts-playback";
-import { MicRecorder } from "./mic-recorder";
+import { MicRecorder } from "./mic-recorder.js";
+import { TtsPlayback } from "./tts-playback.js";
 
 const DEFAULT_URL = import.meta.env.VITE_VOICE_WS_URL || "ws://localhost:8799/voice";
 const LANG_STORAGE_KEY = "mycat.voice.lang";
@@ -21,7 +21,14 @@ type StatusKey =
   | "done"
   | "error";
 
-type WidgetState = "idle" | "connecting" | "connected" | "listening" | "thinking" | "playing" | "error";
+type WidgetState =
+  | "idle"
+  | "connecting"
+  | "connected"
+  | "listening"
+  | "thinking"
+  | "playing"
+  | "error";
 
 type Overlay = {
   setState: (s: WidgetState) => void;
@@ -166,7 +173,13 @@ export function startVoiceWidget(url: string = DEFAULT_URL) {
   return { stop: () => ui.teardown() };
 }
 
-type ActionItem = { id: string; title?: string; status?: string; risk?: string; approval?: boolean };
+type ActionItem = {
+  id: string;
+  title?: string;
+  status?: string;
+  risk?: string;
+  approval?: boolean;
+};
 
 function createWidget(): Overlay & {
   onStart?: () => void;
@@ -449,12 +462,18 @@ function createWidget(): Overlay & {
 
   return controller;
 }
-function renderActions(items: ActionItem[], container: HTMLElement, strings: Record<string, string>) {
+function renderActions(
+  items: ActionItem[],
+  container: HTMLElement,
+  strings: Record<string, string>,
+) {
   container.innerHTML = items
     .slice(0, 5)
     .map((a) => {
       const riskBadge = a.risk ? `<span class="badge badge--${a.risk}">${a.risk}</span>` : "";
-      const approval = a.approval ? `<span class="badge badge--approval">${strings.needApproval}</span>` : "";
+      const approval = a.approval
+        ? `<span class="badge badge--approval">${strings.needApproval}</span>`
+        : "";
       const needsDecision =
         a.approval && !["approved", "rejected", "done", "error"].includes(a.status || "");
       const controls = needsDecision

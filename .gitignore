@@ -70,6 +70,7 @@ USER.md
 
 # local tooling
 .serena/
+apps/voice-video-daemon/.tools/
 
 # Agent credentials and memory (NEVER COMMIT)
 memory/

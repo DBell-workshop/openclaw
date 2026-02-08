@@ -44,7 +44,7 @@ export class TtsPlayback {
     if (tts.audio_base64) {
       return Uint8Array.from(atob(tts.audio_base64), (c) => c.charCodeAt(0)).buffer;
     }
-    if (tts.audio instanceof Uint8Array) return tts.audio.buffer;
+    if (tts.audio instanceof Uint8Array) return new Uint8Array(tts.audio).buffer;
     if (Array.isArray(tts.audio)) return new Uint8Array(tts.audio).buffer;
     return null;
   }
@@ -58,8 +58,7 @@ export class TtsPlayback {
       try {
         const buffer =
           // If codec hints mp3, let decodeAudioData parse it; else treat as PCM16 mono.
-          (await this.tryDecode(data)) ??
-          this.pcmToAudioBuffer(data, /*sampleRate*/ 16000);
+          (await this.tryDecode(data)) ?? this.pcmToAudioBuffer(data, /*sampleRate*/ 16000);
         const src = this.ctx.createBufferSource();
         src.buffer = buffer;
         src.connect(this.ctx.destination);
