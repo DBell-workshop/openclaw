@@ -41,6 +41,10 @@ enum OnboardingCopyKey: String {
     case welcomeSubtitle
     case securityNoticeTitle
     case securityNoticeBody
+    case legalAgreementPrefix
+    case legalConnector
+    case termsOfService
+    case privacyPolicy
     case chooseGatewayTitle
     case chooseGatewaySubtitle
     case thisMacTitle
@@ -195,6 +199,10 @@ enum OnboardingCopy {
 
             Only enable MyCatCat if you understand the risks and trust the prompts and integrations you use.
             """,
+            .legalAgreementPrefix: "By continuing, you agree to the",
+            .legalConnector: "and",
+            .termsOfService: "Terms of Service",
+            .privacyPolicy: "Privacy Policy",
             .chooseGatewayTitle: "Choose your Gateway",
             .chooseGatewaySubtitle: "MyCatCat uses a single Gateway that stays running. Pick this Mac, connect to a discovered gateway nearby, or configure later.",
             .thisMacTitle: "This Mac",
@@ -349,6 +357,10 @@ enum OnboardingCopy {
 
             只有在理解风险并信任所使用的提示与集成时才启用 MyCatCat。
             """,
+            .legalAgreementPrefix: "继续即表示你同意",
+            .legalConnector: "与",
+            .termsOfService: "《用户使用协议》",
+            .privacyPolicy: "《隐私政策》",
             .chooseGatewayTitle: "选择网关",
             .chooseGatewaySubtitle: "MyCatCat 使用一个持续运行的网关。可选择本机、连接附近发现的网关，或稍后配置。",
             .thisMacTitle: "本机",
@@ -503,6 +515,10 @@ enum OnboardingCopy {
 
             只有在理解風險並信任所使用的提示與整合時才啟用 MyCatCat。
             """,
+            .legalAgreementPrefix: "繼續即表示你同意",
+            .legalConnector: "與",
+            .termsOfService: "《使用者協議》",
+            .privacyPolicy: "《隱私政策》",
             .chooseGatewayTitle: "選擇網關",
             .chooseGatewaySubtitle: "MyCatCat 使用一個持續運行的網關。可選擇本機、連接附近發現的網關，或稍後設定。",
             .thisMacTitle: "本機",
@@ -657,6 +673,10 @@ enum OnboardingCopy {
 
             リスクを理解し、利用するプロンプトや連携を信頼できる場合にのみ MyCatCat を有効化してください。
             """,
+            .legalAgreementPrefix: "続行すると、次に同意したものとみなされます:",
+            .legalConnector: "および",
+            .termsOfService: "利用規約",
+            .privacyPolicy: "プライバシーポリシー",
             .chooseGatewayTitle: "ゲートウェイを選択",
             .chooseGatewaySubtitle: "MyCatCat は常駐する 1 つのゲートウェイを使用します。この Mac を使うか、近くで検出したゲートウェイに接続するか、後で設定してください。",
             .thisMacTitle: "この Mac",

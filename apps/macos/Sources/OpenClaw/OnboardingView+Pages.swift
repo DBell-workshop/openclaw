@@ -35,34 +35,64 @@ extension OnboardingView {
         self.onboardingPage {
             VStack(spacing: 22) {
                 Text(self.t(.welcomeTitle))
-                    .font(.largeTitle.weight(.semibold))
+                    .font(.system(size: 52, weight: .semibold, design: .rounded))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
                 Text(self.t(.welcomeSubtitle))
-                    .font(.body)
+                    .font(.title3)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
                     .frame(maxWidth: 560)
                     .fixedSize(horizontal: false, vertical: true)
 
-                self.onboardingCard(spacing: 10, padding: 14) {
+                self.onboardingCard(spacing: 12, padding: 16) {
                     HStack(alignment: .top, spacing: 12) {
                         Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.title3.weight(.semibold))
+                            .font(.title2.weight(.semibold))
                             .foregroundStyle(Color(nsColor: .systemOrange))
                             .frame(width: 22)
                             .padding(.top, 1)
 
                         VStack(alignment: .leading, spacing: 6) {
                             Text(self.t(.securityNoticeTitle))
-                                .font(.headline)
+                                .font(.title3.weight(.semibold))
                             Text(self.t(.securityNoticeBody))
-                                .font(.subheadline)
+                                .font(.body)
+                                .lineSpacing(2)
                                 .foregroundStyle(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
                 }
                 .frame(maxWidth: 520)
+
+                VStack(spacing: 8) {
+                    Text(self.t(.legalAgreementPrefix))
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+
+                    HStack(spacing: 8) {
+                        if let url = self.onboardingTermsURL {
+                            Link(self.t(.termsOfService), destination: url)
+                        } else {
+                            Text(self.t(.termsOfService))
+                        }
+
+                        Text(self.t(.legalConnector))
+                            .foregroundStyle(.secondary)
+
+                        if let url = self.onboardingPrivacyURL {
+                            Link(self.t(.privacyPolicy), destination: url)
+                        } else {
+                            Text(self.t(.privacyPolicy))
+                        }
+                    }
+                    .font(.callout.weight(.semibold))
+                }
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 560)
             }
             .padding(.top, 16)
         }
@@ -887,6 +917,24 @@ extension OnboardingView {
         guard !self.didLoadOnboardingSkills else { return }
         self.didLoadOnboardingSkills = true
         await self.onboardingSkillsModel.refresh()
+    }
+
+    private var onboardingTermsURL: URL? {
+        switch self.onboardingLanguage {
+        case .zhHans, .zhHant:
+            URL(string: "https://github.com/DBell-workshop/openclaw/blob/main/docs/legal/terms-of-service.zh-CN.md")
+        case .en, .ja:
+            URL(string: "https://github.com/DBell-workshop/openclaw/blob/main/docs/legal/terms-of-service.md")
+        }
+    }
+
+    private var onboardingPrivacyURL: URL? {
+        switch self.onboardingLanguage {
+        case .zhHans, .zhHant:
+            URL(string: "https://github.com/DBell-workshop/openclaw/blob/main/docs/legal/privacy-policy.zh-CN.md")
+        case .en, .ja:
+            URL(string: "https://github.com/DBell-workshop/openclaw/blob/main/docs/legal/privacy-policy.md")
+        }
     }
 
     private var skillsOverview: some View {
