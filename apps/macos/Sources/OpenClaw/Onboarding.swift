@@ -99,6 +99,7 @@ struct OnboardingView: View {
     @State var requestingVoicePermissions = false
     @State var monitoringVoice = false
     @State var localGatewayProbe: LocalGatewayProbe?
+    @State var presentedLegalDocument: OnboardingLegalDocument?
     @AppStorage(onboardingLanguageKey) var onboardingLanguageRaw: String = ""
     @AppStorage(voiceWidgetLangKey) var voiceWidgetLang: String = "en"
     @AppStorage(voiceWidgetAutoWakeKey) var voiceWidgetAutoWake: Bool = true

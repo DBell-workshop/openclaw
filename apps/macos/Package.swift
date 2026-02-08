@@ -62,6 +62,7 @@ let package = Package(
                 .copy("Resources/MyCatCat.icns"),
                 .copy("Resources/OpenClaw.icns"),
                 .copy("Resources/DeviceModels"),
+                .copy("Resources/Legal"),
             ],
             swiftSettings: [
                 .enableUpcomingFeature("StrictConcurrency"),

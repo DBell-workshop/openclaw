@@ -73,6 +73,9 @@ extension OnboardingView {
             self.refreshBootstrapStatus()
             self.preferredGatewayID = GatewayDiscoveryPreferences.preferredStableID()
         }
+        .sheet(item: self.$presentedLegalDocument) { document in
+            self.legalDocumentSheet(for: document)
+        }
     }
 
     private var languagePicker: some View {

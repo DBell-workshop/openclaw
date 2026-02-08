@@ -74,22 +74,22 @@ extension OnboardingView {
                         .foregroundStyle(.secondary)
 
                     HStack(spacing: 8) {
-                        if let url = self.onboardingTermsURL {
-                            Link(self.t(.termsOfService), destination: url)
-                        } else {
-                            Text(self.t(.termsOfService))
+                        Button(self.t(.termsOfService)) {
+                            self.presentedLegalDocument = .terms
                         }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.secondary)
 
                         Text(self.t(.legalConnector))
                             .foregroundStyle(.secondary)
 
-                        if let url = self.onboardingPrivacyURL {
-                            Link(self.t(.privacyPolicy), destination: url)
-                        } else {
-                            Text(self.t(.privacyPolicy))
+                        Button(self.t(.privacyPolicy)) {
+                            self.presentedLegalDocument = .privacy
                         }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.secondary)
                     }
-                    .font(.callout.weight(.semibold))
+                    .font(.callout)
                 }
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 560)
@@ -917,24 +917,6 @@ extension OnboardingView {
         guard !self.didLoadOnboardingSkills else { return }
         self.didLoadOnboardingSkills = true
         await self.onboardingSkillsModel.refresh()
-    }
-
-    private var onboardingTermsURL: URL? {
-        switch self.onboardingLanguage {
-        case .zhHans, .zhHant:
-            URL(string: "https://github.com/DBell-workshop/openclaw/blob/main/docs/legal/terms-of-service.zh-CN.md")
-        case .en, .ja:
-            URL(string: "https://github.com/DBell-workshop/openclaw/blob/main/docs/legal/terms-of-service.md")
-        }
-    }
-
-    private var onboardingPrivacyURL: URL? {
-        switch self.onboardingLanguage {
-        case .zhHans, .zhHant:
-            URL(string: "https://github.com/DBell-workshop/openclaw/blob/main/docs/legal/privacy-policy.zh-CN.md")
-        case .en, .ja:
-            URL(string: "https://github.com/DBell-workshop/openclaw/blob/main/docs/legal/privacy-policy.md")
-        }
     }
 
     private var skillsOverview: some View {
