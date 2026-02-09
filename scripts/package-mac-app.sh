@@ -2,10 +2,11 @@
 set -euo pipefail
 
 # Build and bundle OpenClaw into a minimal .app we can open.
-# Outputs to dist/OpenClaw.app
+# Outputs to dist/<APP_BUNDLE_NAME>.app (default: MyCatCat.app)
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-APP_ROOT="$ROOT_DIR/dist/OpenClaw.app"
+APP_BUNDLE_NAME="${APP_BUNDLE_NAME:-MyCatCat}"
+APP_ROOT="$ROOT_DIR/dist/${APP_BUNDLE_NAME}.app"
 BUILD_ROOT="$ROOT_DIR/apps/macos/.build"
 PRODUCT="OpenClaw"
 BUNDLE_ID="${BUNDLE_ID:-ai.openclaw.mac.debug}"
@@ -201,6 +202,9 @@ else
 fi
 
 echo "🖼  Copying app icon"
+if [ -f "$ROOT_DIR/apps/macos/Sources/OpenClaw/Resources/MyCatCat.icns" ]; then
+  cp "$ROOT_DIR/apps/macos/Sources/OpenClaw/Resources/MyCatCat.icns" "$APP_ROOT/Contents/Resources/MyCatCat.icns"
+fi
 cp "$ROOT_DIR/apps/macos/Sources/OpenClaw/Resources/OpenClaw.icns" "$APP_ROOT/Contents/Resources/OpenClaw.icns"
 
 echo "📦 Copying device model resources"
