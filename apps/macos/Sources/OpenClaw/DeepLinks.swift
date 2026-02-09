@@ -1,6 +1,6 @@
 import AppKit
-import OpenClawKit
 import Foundation
+import OpenClawKit
 import OSLog
 import Security
 
@@ -12,9 +12,9 @@ final class DeepLinkHandler {
 
     private var lastPromptAt: Date = .distantPast
 
-    // Ephemeral, in-memory key used for unattended deep links originating from the in-app Canvas.
-    // This avoids blocking Canvas init on UserDefaults and doesn't weaken the external deep-link prompt:
-    // outside callers can't know this randomly generated key.
+    /// Ephemeral, in-memory key used for unattended deep links originating from the in-app Canvas.
+    /// This avoids blocking Canvas init on UserDefaults and doesn't weaken the external deep-link prompt:
+    /// outside callers can't know this randomly generated key.
     private nonisolated static let canvasUnattendedKey: String = DeepLinkHandler.generateRandomKey()
 
     func handle(url: URL) async {
@@ -23,7 +23,7 @@ final class DeepLinkHandler {
             return
         }
         guard !AppStateStore.shared.isPaused else {
-            self.presentAlert(title: "OpenClaw is paused", message: "Unpause OpenClaw to run agent actions.")
+            self.presentAlert(title: "MyCatCat is paused", message: "Unpause MyCatCat to run agent actions.")
             return
         }
 
@@ -51,7 +51,7 @@ final class DeepLinkHandler {
             let trimmed = messagePreview.count > 240 ? "\(messagePreview.prefix(240))…" : messagePreview
             let body =
                 "Run the agent with this message?\n\n\(trimmed)\n\nURL:\n\(originalURL.absoluteString)"
-            guard self.confirm(title: "Run OpenClaw agent?", message: body) else { return }
+            guard self.confirm(title: "Run MyCatCat agent?", message: body) else { return }
         }
 
         if AppStateStore.shared.connectionMode == .local {

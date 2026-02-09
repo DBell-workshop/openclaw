@@ -1,7 +1,7 @@
-import OpenClawKit
-import OpenClawProtocol
 import Darwin
 import Foundation
+import OpenClawKit
+import OpenClawProtocol
 
 struct WizardCliOptions {
     var url: String?
@@ -253,7 +253,7 @@ actor GatewayWizardClient {
         let scopes: [String] = []
         let client: [String: ProtoAnyCodable] = [
             "id": ProtoAnyCodable(clientId),
-            "displayName": ProtoAnyCodable(Host.current().localizedName ?? "OpenClaw macOS Wizard CLI"),
+            "displayName": ProtoAnyCodable(Host.current().localizedName ?? "MyCatCat macOS Wizard CLI"),
             "version": ProtoAnyCodable("dev"),
             "platform": ProtoAnyCodable(platform),
             "deviceFamily": ProtoAnyCodable("Mac"),

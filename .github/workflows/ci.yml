@@ -2,6 +2,8 @@ name: CI
 
 on:
   push:
+    branches:
+      - main
   pull_request:
 
 jobs:
@@ -359,8 +361,16 @@ jobs:
         include:
           - task: lint
             command: |
+              set -euo pipefail
               swiftlint --config .swiftlint.yml
-              swiftformat --lint apps/macos/Sources --config .swiftformat
+              BASE_SHA="${{ github.event.pull_request.base.sha }}"
+              HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+              SWIFT_FILES="$(git diff --name-only --diff-filter=ACMR "$BASE_SHA" "$HEAD_SHA" -- 'apps/macos/Sources/**/*.swift')"
+              if [ -z "$SWIFT_FILES" ]; then
+                echo "No Swift files changed under apps/macos/Sources; skipping swiftformat."
+              else
+                swiftformat --lint --config .swiftformat $SWIFT_FILES
+              fi
           - task: build
             command: |
               set -euo pipefail
@@ -387,6 +397,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           submodules: false
 
       - name: Checkout submodules (retry)

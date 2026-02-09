@@ -10,7 +10,7 @@ struct AboutSettings: View {
         VStack(spacing: 8) {
             let appIcon = NSApplication.shared.applicationIconImage ?? CritterIconRenderer.makeIcon(blink: 0)
             Button {
-                if let url = URL(string: "https://github.com/openclaw/openclaw") {
+                if let url = URL(string: "https://github.com/DBell-workshop/openclaw") {
                     NSWorkspace.shared.open(url)
                 }
             } label: {
@@ -29,7 +29,7 @@ struct AboutSettings: View {
             }
 
             VStack(spacing: 3) {
-                Text("OpenClaw")
+                Text("MyCatCat")
                     .font(.title3.bold())
                 Text("Version \(self.versionString)")
                     .foregroundStyle(.secondary)
@@ -38,7 +38,7 @@ struct AboutSettings: View {
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
-                Text("Menu bar companion for notifications, screenshots, and privileged agent actions.")
+                Text("Personal AI assistant for voice, chat, and desktop actions.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -48,11 +48,12 @@ struct AboutSettings: View {
             VStack(alignment: .center, spacing: 6) {
                 AboutLinkRow(
                     icon: "chevron.left.slash.chevron.right",
-                    title: "GitHub",
+                    title: "GitHub (MyCatCat)",
+                    url: "https://github.com/DBell-workshop/openclaw")
+                AboutLinkRow(
+                    icon: "link",
+                    title: "Upstream (OpenClaw)",
                     url: "https://github.com/openclaw/openclaw")
-                AboutLinkRow(icon: "globe", title: "Website", url: "https://openclaw.ai")
-                AboutLinkRow(icon: "bird", title: "Twitter", url: "https://twitter.com/steipete")
-                AboutLinkRow(icon: "envelope", title: "Email", url: "mailto:peter@steipete.me")
             }
             .frame(maxWidth: .infinity)
             .multilineTextAlignment(.center)
@@ -77,7 +78,10 @@ struct AboutSettings: View {
                 }
             }
 
-            Text("© 2025 Peter Steinberger — MIT License.")
+            Text("Powered by OpenClaw (MIT).")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            Text("© 2026 MyCatCat contributors.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .padding(.top, 4)
@@ -110,8 +114,8 @@ struct AboutSettings: View {
     private var buildTimestamp: String? {
         guard
             let raw =
-                (Bundle.main.object(forInfoDictionaryKey: "OpenClawBuildTimestamp") as? String) ??
-                (Bundle.main.object(forInfoDictionaryKey: "OpenClawBuildTimestamp") as? String)
+            (Bundle.main.object(forInfoDictionaryKey: "OpenClawBuildTimestamp") as? String) ??
+            (Bundle.main.object(forInfoDictionaryKey: "OpenClawBuildTimestamp") as? String)
         else { return nil }
         let parser = ISO8601DateFormatter()
         parser.formatOptions = [.withInternetDateTime]

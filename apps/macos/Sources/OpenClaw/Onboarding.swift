@@ -1,9 +1,9 @@
 import AppKit
+import Combine
+import Observation
 import OpenClawChatUI
 import OpenClawDiscovery
 import OpenClawIPC
-import Combine
-import Observation
 import SwiftUI
 
 enum UIStrings {
@@ -95,6 +95,10 @@ struct OnboardingView: View {
     @State var onboardingWizard = OnboardingWizardModel()
     @State var didLoadOnboardingSkills = false
     @State var localGatewayProbe: LocalGatewayProbe?
+    @State var presentedLegalDocument: OnboardingLegalDocument?
+    @AppStorage(onboardingLanguageKey) var onboardingLanguageRaw: String = ""
+    @AppStorage(voiceWidgetLangKey) var voiceWidgetLang: String = "en"
+    @AppStorage(voiceWidgetAutoWakeKey) var voiceWidgetAutoWake: Bool = true
     @Bindable var state: AppState
     var permissionMonitor: PermissionMonitor
 
@@ -142,18 +146,30 @@ struct OnboardingView: View {
         Self.pageOrder(for: self.state.connectionMode, showOnboardingChat: self.showOnboardingChat)
     }
 
-    var pageCount: Int { self.pageOrder.count }
+    var pageCount: Int {
+        self.pageOrder.count
+    }
+
     var activePageIndex: Int {
         self.activePageIndex(for: self.currentPage)
     }
 
-    var buttonTitle: String { self.currentPage == self.pageCount - 1 ? "Finish" : "Next" }
-    var wizardPageOrderIndex: Int? { self.pageOrder.firstIndex(of: self.wizardPageIndex) }
+    var buttonTitle: String {
+        self.currentPage == self.pageCount - 1 ? "Finish" : "Next"
+    }
+
+    var wizardPageOrderIndex: Int? {
+        self.pageOrder.firstIndex(of: self.wizardPageIndex)
+    }
+
     var isWizardBlocking: Bool {
         self.activePageIndex == self.wizardPageIndex && !self.onboardingWizard.isComplete
     }
 
-    var canAdvance: Bool { !self.isWizardBlocking }
+    var canAdvance: Bool {
+        !self.isWizardBlocking
+    }
+
     var devLinkCommand: String {
         let version = GatewayEnvironment.expectedGatewayVersionString() ?? "latest"
         return "npm install -g openclaw@\(version)"

@@ -29,7 +29,9 @@ struct VoiceWakeSettings: View {
     private struct AudioInputDevice: Identifiable, Equatable {
         let uid: String
         let name: String
-        var id: String { self.uid }
+        var id: String {
+            self.uid
+        }
     }
 
     private struct TriggerEntry: Identifiable {
@@ -205,7 +207,7 @@ struct VoiceWakeSettings: View {
                     .stroke(Color.secondary.opacity(0.25), lineWidth: 1))
 
             Text(
-                "OpenClaw reacts when any trigger appears in a transcription. "
+                "MyCatCat reacts when any trigger appears in a transcription. "
                     + "Keep them short to avoid false positives.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)

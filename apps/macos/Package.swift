@@ -59,8 +59,10 @@ let package = Package(
                 "Resources/Info.plist",
             ],
             resources: [
+                .copy("Resources/MyCatCat.icns"),
                 .copy("Resources/OpenClaw.icns"),
                 .copy("Resources/DeviceModels"),
+                .copy("Resources/Legal"),
             ],
             swiftSettings: [
                 .enableUpcomingFeature("StrictConcurrency"),
