@@ -7,7 +7,7 @@ import OpenClawIPC
 import SwiftUI
 
 enum UIStrings {
-    static let welcomeTitle = "Welcome to OpenClaw"
+    static let welcomeTitle = "MyCatCat"
 }
 
 @MainActor
@@ -134,7 +134,8 @@ struct OnboardingView: View {
         case .unconfigured:
             showOnboardingChat ? [0, 1, 8, 9] : [0, 1, 9]
         case .local:
-            showOnboardingChat ? [0, 1, 3, 5, 8, 9] : [0, 1, 3, 5, 9]
+            // Local mode requires a working CLI so launchd can start the gateway.
+            showOnboardingChat ? [0, 1, 6, 3, 5, 8, 9] : [0, 1, 6, 3, 5, 9]
         }
     }
 
@@ -155,7 +156,7 @@ struct OnboardingView: View {
     }
 
     var buttonTitle: String {
-        self.currentPage == self.pageCount - 1 ? "Finish" : "Next"
+        self.currentPage == self.pageCount - 1 ? self.t(.finish) : self.t(.next)
     }
 
     var wizardPageOrderIndex: Int? {
@@ -163,11 +164,19 @@ struct OnboardingView: View {
     }
 
     var isWizardBlocking: Bool {
-        self.activePageIndex == self.wizardPageIndex && !self.onboardingWizard.isComplete
+        // Block advancing while the wizard is running/starting, but don't trap the user on error.
+        self.activePageIndex == self.wizardPageIndex
+            && self.onboardingWizard.status != "error"
+            && !self.onboardingWizard.isComplete
     }
 
     var canAdvance: Bool {
-        !self.isWizardBlocking
+        if self.isWizardBlocking { return false }
+        // If the user chose local mode, require the CLI so the gateway can be managed by launchd.
+        if self.activePageIndex == 6, self.state.connectionMode == .local, self.cliInstalled == false {
+            return false
+        }
+        return true
     }
 
     var devLinkCommand: String {

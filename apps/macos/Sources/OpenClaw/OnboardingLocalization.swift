@@ -172,6 +172,7 @@ enum OnboardingCopyKey: String {
     case noSkillsYet
     case setupWizardTitle
     case setupWizardSubtitle
+    case gatewayNotReadyError
     case wizardError
     case retry
     case startingWizard
@@ -338,6 +339,7 @@ enum OnboardingCopy {
             .noSkillsYet: "No skills reported yet.",
             .setupWizardTitle: "Setup Wizard",
             .setupWizardSubtitle: "Follow the guided setup from the Gateway. This keeps onboarding in sync with the CLI.",
+            .gatewayNotReadyError: "Gateway is not ready yet. Install the CLI (or retry), then continue.",
             .wizardError: "Wizard error",
             .retry: "Retry",
             .startingWizard: "Starting wizard…",
@@ -495,6 +497,7 @@ enum OnboardingCopy {
             .noSkillsYet: "尚未获取到技能列表。",
             .setupWizardTitle: "设置向导",
             .setupWizardSubtitle: "按照网关提供的引导完成设置，以保持与 CLI 同步。",
+            .gatewayNotReadyError: "网关尚未就绪。请先安装 CLI（或重试），然后继续。",
             .wizardError: "向导出错",
             .retry: "重试",
             .startingWizard: "正在启动向导…",
@@ -652,6 +655,7 @@ enum OnboardingCopy {
             .noSkillsYet: "尚未取得技能列表。",
             .setupWizardTitle: "設定精靈",
             .setupWizardSubtitle: "按照網關提供的引導完成設定，以保持與 CLI 同步。",
+            .gatewayNotReadyError: "網關尚未就緒。請先安裝 CLI（或重試），再繼續。",
             .wizardError: "精靈出錯",
             .retry: "重試",
             .startingWizard: "正在啟動精靈…",
@@ -815,6 +819,7 @@ enum OnboardingCopy {
             .noSkillsYet: "まだスキルが報告されていません。",
             .setupWizardTitle: "セットアップウィザード",
             .setupWizardSubtitle: "ゲートウェイのガイドに従って設定します。CLI とオンボーディングを同期できます。",
+            .gatewayNotReadyError: "ゲートウェイがまだ準備できていません。先に CLI をインストール（または再試行）してから続行してください。",
             .wizardError: "ウィザードエラー",
             .retry: "再試行",
             .startingWizard: "ウィザードを開始中…",

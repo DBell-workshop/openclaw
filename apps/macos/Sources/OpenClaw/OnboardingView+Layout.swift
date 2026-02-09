@@ -29,7 +29,13 @@ extension OnboardingView {
         }
         .frame(width: self.pageWidth, height: Self.windowHeight)
         .background(Color(NSColor.windowBackgroundColor))
+        .overlay(alignment: .topTrailing) {
+            self.languagePicker
+                .padding(.top, 18)
+                .padding(.trailing, 18)
+        }
         .onAppear {
+            self.ensureOnboardingLanguage()
             self.currentPage = 0
             self.updateMonitoring(for: 0)
         }
@@ -93,7 +99,7 @@ extension OnboardingView {
         return HStack(spacing: 20) {
             ZStack(alignment: .leading) {
                 Button(action: {}, label: {
-                    Label("Back", systemImage: "chevron.left").labelStyle(.iconOnly)
+                    Label(self.t(.back), systemImage: "chevron.left").labelStyle(.iconOnly)
                 })
                 .buttonStyle(.plain)
                 .opacity(0)
@@ -101,7 +107,7 @@ extension OnboardingView {
 
                 if self.currentPage > 0 {
                     Button(action: self.handleBack, label: {
-                        Label("Back", systemImage: "chevron.left")
+                        Label(self.t(.back), systemImage: "chevron.left")
                             .labelStyle(.iconOnly)
                     })
                     .buttonStyle(.plain)
@@ -144,6 +150,27 @@ extension OnboardingView {
         .padding(.horizontal, 28)
         .padding(.bottom, 13)
         .frame(minHeight: 60, alignment: .bottom)
+    }
+
+    private var languagePicker: some View {
+        HStack(spacing: 8) {
+            Text(self.t(.languageLabel))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+            Picker("", selection: self.$onboardingLanguageRaw) {
+                ForEach(OnboardingLanguage.allCases, id: \.rawValue) { lang in
+                    Text(lang.displayName).tag(lang.rawValue)
+                }
+            }
+            .labelsHidden()
+            .pickerStyle(.menu)
+            .frame(maxWidth: 180, alignment: .trailing)
+        }
+        .padding(.vertical, 6)
+        .padding(.horizontal, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color(NSColor.controlBackgroundColor).opacity(0.85)))
     }
 
     func onboardingPage(@ViewBuilder _ content: () -> some View) -> some View {
