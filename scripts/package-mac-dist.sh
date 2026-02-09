@@ -24,8 +24,14 @@ fi
 
 APP_NAME=$(/usr/libexec/PlistBuddy -c "Print CFBundleName" "$APP/Contents/Info.plist" 2>/dev/null || echo "$APP_BUNDLE_NAME")
 VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$APP/Contents/Info.plist" 2>/dev/null || echo "0.0.0")
+DIST_DATE_TAG="${DIST_DATE_TAG:-$(date +%Y-%m-%d)}"
+DIST_INCLUDE_DATE="${DIST_INCLUDE_DATE:-1}"
 ZIP="$ROOT_DIR/dist/$APP_NAME-$VERSION.zip"
-DMG="$ROOT_DIR/dist/$APP_NAME-$VERSION.dmg"
+if [[ "$DIST_INCLUDE_DATE" == "1" ]]; then
+  DMG="$ROOT_DIR/dist/$APP_NAME-$VERSION-$DIST_DATE_TAG.dmg"
+else
+  DMG="$ROOT_DIR/dist/$APP_NAME-$VERSION.dmg"
+fi
 NOTARY_ZIP="$ROOT_DIR/dist/$APP_NAME-$VERSION.notary.zip"
 SKIP_NOTARIZE="${SKIP_NOTARIZE:-0}"
 NOTARIZE=1
