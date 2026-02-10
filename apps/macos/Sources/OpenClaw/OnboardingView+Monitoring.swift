@@ -94,8 +94,14 @@ extension OnboardingView {
         guard !self.installingCLI else { return }
         self.installingCLI = true
         defer { installingCLI = false }
-        await CLIInstaller.install { message in
-            self.cliStatus = message
+        await MainActor.run { self.cliStatus = self.t(.cliInstalling) }
+        let outcome = await CLIInstaller.installOutcome()
+        await MainActor.run {
+            if outcome.success {
+                self.cliStatus = self.t(.cliInstalledSuccess)
+            } else {
+                self.cliStatus = self.tf(.cliInstallFailed, outcome.errorMessage ?? "unknown error")
+            }
         }
         self.refreshCLIStatus()
     }

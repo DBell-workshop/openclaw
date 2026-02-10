@@ -2,6 +2,12 @@ import Foundation
 
 @MainActor
 enum CLIInstaller {
+    struct InstallOutcome: Sendable {
+        let success: Bool
+        let installedVersion: String?
+        let errorMessage: String?
+    }
+
     static func installedLocation() -> String? {
         self.installedLocation(
             searchPaths: CommandResolver.preferredPaths(),
@@ -35,29 +41,37 @@ enum CLIInstaller {
     }
 
     static func install(statusHandler: @escaping @MainActor @Sendable (String) async -> Void) async {
+        // Legacy API: keep it, but avoid leaking upstream package names in the user-facing status text.
+        // Onboarding will localize separately.
+        await statusHandler("Installing CLI…")
+        let outcome = await self.installOutcome()
+        if outcome.success {
+            await statusHandler("CLI installed.")
+        } else {
+            await statusHandler("CLI install failed: \(outcome.errorMessage ?? "unknown error")")
+        }
+    }
+
+    static func installOutcome() async -> InstallOutcome {
         let expected = GatewayEnvironment.expectedGatewayVersionString() ?? "latest"
         let prefix = Self.installPrefix()
-        await statusHandler("Installing openclaw CLI…")
         let cmd = self.installScriptCommand(version: expected, prefix: prefix)
         let response = await ShellExecutor.runDetailed(command: cmd, cwd: nil, env: nil, timeout: 900)
 
         if response.success {
             let parsed = self.parseInstallEvents(response.stdout)
             let installedVersion = parsed.last { $0.event == "done" }?.version
-            let summary = installedVersion.map { "Installed openclaw \($0)." } ?? "Installed openclaw."
-            await statusHandler(summary)
-            return
+            return InstallOutcome(success: true, installedVersion: installedVersion, errorMessage: nil)
         }
 
         let parsed = self.parseInstallEvents(response.stdout)
         if let error = parsed.last(where: { $0.event == "error" })?.message {
-            await statusHandler("Install failed: \(error)")
-            return
+            return InstallOutcome(success: false, installedVersion: nil, errorMessage: error)
         }
 
         let detail = response.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
         let fallback = response.errorMessage ?? "install failed"
-        await statusHandler("Install failed: \(detail.isEmpty ? fallback : detail)")
+        return InstallOutcome(success: false, installedVersion: nil, errorMessage: (detail.isEmpty ? fallback : detail))
     }
 
     private static func installPrefix() -> String {

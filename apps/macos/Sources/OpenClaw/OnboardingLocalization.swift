@@ -127,6 +127,12 @@ enum OnboardingCopyKey: String {
     case voiceDaemonRetry
     case installCliTitle
     case installCliSubtitle
+    case cliInstalling
+    case cliInstalledSuccess
+    case cliInstallFailed
+    case installed
+    case showDetails
+    case hideDetails
     case reinstallCli
     case installCli
     case copied
@@ -284,7 +290,13 @@ enum OnboardingCopy {
             .voiceDaemonRestart: "Restart voice daemon",
             .voiceDaemonRetry: "Retry voice daemon",
             .installCliTitle: "Install the CLI",
-            .installCliSubtitle: "Required for local mode: installs `openclaw` so launchd can run the gateway.",
+            .installCliSubtitle: "Required for local mode: installs command-line components so launchd can run the gateway.",
+            .cliInstalling: "Installing CLI…",
+            .cliInstalledSuccess: "CLI installed.",
+            .cliInstallFailed: "CLI install failed: %@",
+            .installed: "Installed",
+            .showDetails: "Show details",
+            .hideDetails: "Hide details",
             .reinstallCli: "Reinstall CLI",
             .installCli: "Install CLI",
             .copied: "Copied",
@@ -448,7 +460,13 @@ enum OnboardingCopy {
             .voiceDaemonRestart: "重启语音守护进程",
             .voiceDaemonRetry: "重试语音守护进程",
             .installCliTitle: "安装 CLI",
-            .installCliSubtitle: "本地模式需要安装 `openclaw`，以便 launchd 运行网关。",
+            .installCliSubtitle: "本地模式需要安装命令行组件，以便 launchd 运行网关。",
+            .cliInstalling: "正在安装 CLI…",
+            .cliInstalledSuccess: "CLI 已安装。",
+            .cliInstallFailed: "CLI 安装失败：%@",
+            .installed: "已安装",
+            .showDetails: "显示详情",
+            .hideDetails: "隐藏详情",
             .reinstallCli: "重新安装 CLI",
             .installCli: "安装 CLI",
             .copied: "已复制",
@@ -606,7 +624,13 @@ enum OnboardingCopy {
             .voiceDaemonRestart: "重新啟動語音守護程式",
             .voiceDaemonRetry: "重試語音守護程式",
             .installCliTitle: "安裝 CLI",
-            .installCliSubtitle: "本機模式需要安裝 `openclaw`，以便 launchd 執行網關。",
+            .installCliSubtitle: "本機模式需要安裝命令列元件，以便 launchd 執行網關。",
+            .cliInstalling: "正在安裝 CLI…",
+            .cliInstalledSuccess: "CLI 已安裝。",
+            .cliInstallFailed: "CLI 安裝失敗：%@",
+            .installed: "已安裝",
+            .showDetails: "顯示詳情",
+            .hideDetails: "隱藏詳情",
             .reinstallCli: "重新安裝 CLI",
             .installCli: "安裝 CLI",
             .copied: "已複製",
@@ -764,7 +788,13 @@ enum OnboardingCopy {
             .voiceDaemonRestart: "音声デーモンを再起動",
             .voiceDaemonRetry: "音声デーモンを再試行",
             .installCliTitle: "CLI をインストール",
-            .installCliSubtitle: "ローカルモードに必要です。`openclaw` をインストールして launchd がゲートウェイを起動できるようにします。",
+            .installCliSubtitle: "ローカルモードに必要です。コマンドラインコンポーネントをインストールして launchd がゲートウェイを起動できるようにします。",
+            .cliInstalling: "CLI をインストール中…",
+            .cliInstalledSuccess: "CLI をインストールしました。",
+            .cliInstallFailed: "CLI のインストールに失敗しました: %@",
+            .installed: "インストール済み",
+            .showDetails: "詳細を表示",
+            .hideDetails: "詳細を隠す",
             .reinstallCli: "CLI を再インストール",
             .installCli: "CLI をインストール",
             .copied: "コピー済み",

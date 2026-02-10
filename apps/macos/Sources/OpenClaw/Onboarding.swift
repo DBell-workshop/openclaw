@@ -66,6 +66,7 @@ struct OnboardingView: View {
     @State var monitoringDiscovery = false
     @State var cliInstalled = false
     @State var cliInstallLocation: String?
+    @State var showCliInstallDetails = false
     @State var workspacePath: String = ""
     @State var workspaceStatus: String?
     @State var workspaceApplying = false

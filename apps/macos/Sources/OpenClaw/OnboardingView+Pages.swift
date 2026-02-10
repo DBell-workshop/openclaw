@@ -591,10 +591,28 @@ extension OnboardingView {
                     .disabled(self.installingCLI)
 
                     if self.cliInstalled, let loc = self.cliInstallLocation {
-                        Label(self.tf(.installedAt, loc), systemImage: "checkmark.circle.fill")
+                        HStack(spacing: 10) {
+                            Label(self.t(.installed), systemImage: "checkmark.circle.fill")
+                                .font(.footnote)
+                                .foregroundStyle(.green)
+                            Button(self.showCliInstallDetails ? self.t(.hideDetails) : self.t(.showDetails)) {
+                                withAnimation(.spring(response: 0.25, dampingFraction: 0.9)) {
+                                    self.showCliInstallDetails.toggle()
+                                }
+                            }
+                            .buttonStyle(.link)
                             .font(.footnote)
-                            .foregroundStyle(.green)
+                        }
+                        .help(loc)
                     }
+                }
+
+                if self.cliInstalled, let loc = self.cliInstallLocation, self.showCliInstallDetails {
+                    Text(loc)
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
                 if let cliStatus {
