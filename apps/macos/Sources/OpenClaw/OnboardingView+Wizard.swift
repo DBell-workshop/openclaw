@@ -62,20 +62,48 @@ private struct OnboardingWizardCardContent: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            Button(OnboardingCopy.text(.retry, lang: self.lang)) {
-                self.wizard.reset()
-                Task {
-                    await self.wizard.startIfNeeded(
-                        mode: self.mode,
-                        workspace: self.workspacePath.isEmpty ? nil : self.workspacePath)
+            if self.wizard.needsEnableAutostart {
+                HStack(spacing: 10) {
+                    Button(OnboardingCopy.text(.enableAutostart, lang: self.lang)) {
+                        Task {
+                            await self.wizard.enableAutostartAndRetry(
+                                mode: self.mode,
+                                workspace: self.workspacePath.isEmpty ? nil : self.workspacePath)
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+
+                    Button(OnboardingCopy.text(.retry, lang: self.lang)) {
+                        self.wizard.reset()
+                        Task {
+                            await self.wizard.startIfNeeded(
+                                mode: self.mode,
+                                workspace: self.workspacePath.isEmpty ? nil : self.workspacePath)
+                        }
+                    }
+                    .buttonStyle(.bordered)
                 }
+            } else {
+                Button(OnboardingCopy.text(.retry, lang: self.lang)) {
+                    self.wizard.reset()
+                    Task {
+                        await self.wizard.startIfNeeded(
+                            mode: self.mode,
+                            workspace: self.workspacePath.isEmpty ? nil : self.workspacePath)
+                    }
+                }
+                .buttonStyle(.borderedProminent)
             }
-            .buttonStyle(.borderedProminent)
         case .starting:
             HStack(spacing: 8) {
                 ProgressView()
-                Text(OnboardingCopy.text(.startingWizard, lang: self.lang))
-                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(OnboardingCopy.text(.gatewayDepsInstallingTitle, lang: self.lang))
+                        .foregroundStyle(.secondary)
+                    Text(OnboardingCopy.text(.gatewayDepsInstallingSubtitle, lang: self.lang))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         case let .step(step):
             OnboardingWizardStepView(

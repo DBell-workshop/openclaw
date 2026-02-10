@@ -34,6 +34,7 @@ final class OnboardingWizardModel {
     private(set) var currentStep: WizardStep?
     private(set) var status: String?
     private(set) var errorMessage: String?
+    private(set) var needsEnableAutostart: Bool = false
     var isStarting = false
     var isSubmitting = false
     private var lastStartMode: AppState.ConnectionMode?
@@ -49,11 +50,25 @@ final class OnboardingWizardModel {
         self.currentStep = nil
         self.status = nil
         self.errorMessage = nil
+        self.needsEnableAutostart = false
         self.isStarting = false
         self.isSubmitting = false
         self.restartAttempts = 0
         self.lastStartMode = nil
         self.lastStartWorkspace = nil
+    }
+
+    func enableAutostartAndRetry(mode: AppState.ConnectionMode, workspace: String? = nil) async {
+        // Clearing the marker is a user-visible action; keep the error if we can't.
+        if let err = GatewayLaunchAgentManager.setLaunchAgentWriteDisabled(false) {
+            self.status = "error"
+            self.needsEnableAutostart = true
+            self.errorMessage = err
+            onboardingWizardLogger.error("failed to clear disable marker: \(err, privacy: .public)")
+            return
+        }
+        self.reset()
+        await self.startIfNeeded(mode: mode, workspace: workspace)
     }
 
     func startIfNeeded(mode: AppState.ConnectionMode, workspace: String? = nil) async {
@@ -68,15 +83,31 @@ final class OnboardingWizardModel {
         }
         self.isStarting = true
         self.errorMessage = nil
+        self.needsEnableAutostart = false
         self.lastStartMode = mode
         self.lastStartWorkspace = workspace
         defer { self.isStarting = false }
 
         do {
-            GatewayProcessManager.shared.setActive(true)
-            if await GatewayProcessManager.shared.waitForGatewayReady(timeout: 12) == false {
+            if GatewayLaunchAgentManager.isLaunchAgentWriteDisabled() {
                 self.status = "error"
-                self.errorMessage = OnboardingCopy.text(.gatewayNotReadyError)
+                self.needsEnableAutostart = true
+                self.errorMessage = OnboardingCopy.text(.gatewayAutostartDisabledBody, lang: OnboardingLanguage.fromDefaults())
+                onboardingWizardLogger.error("launchd autostart disabled (marker set)")
+                return
+            }
+
+            GatewayProcessManager.shared.setActive(true)
+            // First launch can take a while (Node/runtime install, launchd job install, etc.).
+            // Try to proactively enable/kickstart, then wait long enough to avoid false failures.
+            await GatewayProcessManager.shared.ensureLaunchAgentEnabledIfNeeded()
+            await GatewayLaunchAgentManager.kickstart()
+            if await GatewayProcessManager.shared.waitForGatewayReady(timeout: 90) == false {
+                self.status = "error"
+                let reason = GatewayProcessManager.shared.lastFailureReason
+                    ?? GatewayProcessManager.shared.environmentStatus.message
+                let template = OnboardingCopy.text(.gatewayStartFailedDetails, lang: OnboardingLanguage.fromDefaults())
+                self.errorMessage = template.replacingOccurrences(of: "%@", with: reason)
                 onboardingWizardLogger.error("gateway not ready")
                 return
             }
@@ -181,7 +212,7 @@ final class OnboardingWizardModel {
         self.sessionId = nil
         self.currentStep = nil
         self.status = nil
-        self.errorMessage = "Wizard session lost. Restarting…"
+        self.errorMessage = OnboardingCopy.text(.startingWizard, lang: OnboardingLanguage.fromDefaults())
         Task { await self.startIfNeeded(mode: mode, workspace: self.lastStartWorkspace) }
         return true
     }
