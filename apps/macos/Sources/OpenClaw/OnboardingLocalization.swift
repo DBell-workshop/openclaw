@@ -179,6 +179,10 @@ enum OnboardingCopyKey: String {
     case setupWizardTitle
     case setupWizardSubtitle
     case gatewayNotReadyError
+    case gatewayAutostartDisabledTitle
+    case gatewayAutostartDisabledBody
+    case enableAutostart
+    case gatewayStartFailedDetails
     case wizardError
     case retry
     case startingWizard
@@ -352,6 +356,10 @@ enum OnboardingCopy {
             .setupWizardTitle: "Setup Wizard",
             .setupWizardSubtitle: "Follow the guided setup from the Gateway. This keeps onboarding in sync with the CLI.",
             .gatewayNotReadyError: "Gateway is not ready yet. Install the CLI (or retry), then continue.",
+            .gatewayAutostartDisabledTitle: "Gateway auto-start is disabled",
+            .gatewayAutostartDisabledBody: "MyCatCat detected that gateway auto-start is disabled. Enable it, then retry the wizard.",
+            .enableAutostart: "Enable auto-start",
+            .gatewayStartFailedDetails: "Gateway start failed: %@",
             .wizardError: "Wizard error",
             .retry: "Retry",
             .startingWizard: "Starting wizard…",
@@ -516,6 +524,10 @@ enum OnboardingCopy {
             .setupWizardTitle: "设置向导",
             .setupWizardSubtitle: "按照网关提供的引导完成设置，以保持与 CLI 同步。",
             .gatewayNotReadyError: "网关尚未就绪。请先安装 CLI（或重试），然后继续。",
+            .gatewayAutostartDisabledTitle: "网关自动启动已关闭",
+            .gatewayAutostartDisabledBody: "检测到你关闭了网关自动启动。请启用后再重试设置向导。",
+            .enableAutostart: "启用自动启动",
+            .gatewayStartFailedDetails: "网关启动失败：%@",
             .wizardError: "向导出错",
             .retry: "重试",
             .startingWizard: "正在启动向导…",
@@ -680,6 +692,10 @@ enum OnboardingCopy {
             .setupWizardTitle: "設定精靈",
             .setupWizardSubtitle: "按照網關提供的引導完成設定，以保持與 CLI 同步。",
             .gatewayNotReadyError: "網關尚未就緒。請先安裝 CLI（或重試），再繼續。",
+            .gatewayAutostartDisabledTitle: "已關閉閘道自動啟動",
+            .gatewayAutostartDisabledBody: "偵測到你關閉了閘道自動啟動。請啟用後再重試設定精靈。",
+            .enableAutostart: "啟用自動啟動",
+            .gatewayStartFailedDetails: "閘道啟動失敗：%@",
             .wizardError: "精靈出錯",
             .retry: "重試",
             .startingWizard: "正在啟動精靈…",
@@ -850,6 +866,10 @@ enum OnboardingCopy {
             .setupWizardTitle: "セットアップウィザード",
             .setupWizardSubtitle: "ゲートウェイのガイドに従って設定します。CLI とオンボーディングを同期できます。",
             .gatewayNotReadyError: "ゲートウェイがまだ準備できていません。先に CLI をインストール（または再試行）してから続行してください。",
+            .gatewayAutostartDisabledTitle: "ゲートウェイ自動起動が無効です",
+            .gatewayAutostartDisabledBody: "ゲートウェイの自動起動が無効になっています。有効化してからウィザードを再試行してください。",
+            .enableAutostart: "自動起動を有効化",
+            .gatewayStartFailedDetails: "ゲートウェイの起動に失敗しました: %@",
             .wizardError: "ウィザードエラー",
             .retry: "再試行",
             .startingWizard: "ウィザードを開始中…",
